@@ -1,0 +1,14 @@
+template:
+    url: https://github.com/CouscousPHP/Template-Light
+
+# Base URL of the published website
+baseUrl: https://webbreaker.github.io/fortifyapi
+
+# Used to link to the GitHub project
+github:
+    user: webbreaker
+    repo: fortifyapi
+    url: github.com
+
+title: Fortify API
+subTitle: A python module for the Fortify API
