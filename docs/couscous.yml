@@ -2,11 +2,11 @@ template:
     url: https://github.com/CouscousPHP/Template-Light
 
 # Base URL of the published website
-baseUrl: https://webbreaker.github.io/fortifyapi
+baseUrl: https://fortifyadmin.github.io/fortifyapi
 
 # Used to link to the GitHub project
 github:
-    user: webbreaker
+    user: fortifyadmin
     repo: fortifyapi
     url: github.com
 
