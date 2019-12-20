@@ -395,12 +395,13 @@ class FortifyApi(object):
         url = "/api/v1/projects?start=-1&limit=-1"
         return self._request('GET', url)
 
-    def get_token(self):
+    def get_token(self, description):
         """
         :return: A response object with data containing create date, terminal date, and the actual token
         """
 
         data = {
+            "description": description,
             "type": "UnifiedLoginToken"
         }
 
