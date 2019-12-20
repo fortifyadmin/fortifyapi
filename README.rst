@@ -16,7 +16,7 @@ Several quick start options are available:
 
 - Build locally: ``pip install wheel setuptools && python setup.py build`` 
 - Install with pip (recommended): ``pip install fortifyapi``
-- `Download the latest release <https://github.com/fortifyadmin/fortifyapi/releases/latest/>`__.
+- `Download the latest release <https://pypi.org/project/fortifyapi/>`__.
 
 Example
 ~~~~~~~
