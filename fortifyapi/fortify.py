@@ -18,7 +18,7 @@ from . import __version__ as version
 
 class FortifyApi(object):
     def __init__(self, host, username=None, password=None, token=None, verify_ssl=True, timeout=60, user_agent=None,
-                 client_version='17.20.0158'):
+                 client_version='19.10'):
 
         self.host = host
         self.username = username
@@ -165,6 +165,38 @@ class FortifyApi(object):
                                         )]
                                         )
         return json_application_version
+
+    def create_result_processing_rules(self, version_id):
+        data = dict(httpVerb='PUT',
+                    postData=[dict(
+                        values={
+                          "identifier": "com.fortify.manager.BLL.processingrules.BuildProjectProcessingRule",
+                          "enabled": 'false',
+                          "identifier": "com.fortify.manager.BLL.processingrules.FileCountProcessingRule",
+                          "enabled": 'false',
+                          "identifier": "com.fortify.manager.BLL.processingrules.FortifyAnnotationsProcessingRule",
+                          "enabled": 'false',
+                          "identifier": "com.fortify.manager.BLL.processingrules.LOCCountProcessingRule",
+                          "enabled": 'false',
+                          "identifier": "com.fortify.manager.BLL.processingrules.NewerEngineVersionProcessingRule",
+                          "enabled": 'false',
+                          "identifier": "com.fortify.manager.BLL.processingrules.RulePackVersionProcessingRule",
+                          "enabled": 'false',
+                          "identifier": "com.fortify.manager.BLL.processingrules.ValidCertificationProcessingRule",
+                          "enabled": 'false',
+                          "identifier": "com.fortify.manager.BLL.processingrules.WarningProcessingRule",
+                          "enabled": 'false',
+                          "identifier": "com.fortify.manager.BLL.processingrules.AuditedAnalysisRule",
+                          "enabled": 'false',
+                          "identifier": "com.fortify.manager.BLL.processingrules.PendingApprovalChecker",
+                          "enabled": 'false'
+                        }
+                    )]
+                    )
+        url = self.host + '/api/v1/projectVersions/' + str(version_id) + '/resultProcessingRules'
+        return self._request('PUT', url, data=data)
+        #url = self.host + '/api/v1/projectVersions/' + str(version_id) + '/resultProcessingRules',
+        #data = json.dumps(json_application_version)
 
     def create_application_version(self, application_name, application_template, version_name, description,
                                    application_id=None):
@@ -399,7 +431,6 @@ class FortifyApi(object):
         """
         :return: A response object with data containing create date, terminal date, and the actual token
         """
-
         data = {
             "description": description,
             "type": "UnifiedLoginToken"
@@ -461,7 +492,7 @@ class FortifyApi(object):
         Delete all tokens by user from the auth-token-controller
         :return:
         """
-        url = "/api/v1/tokens?all=true"
+        url = '/api/v1/tokens' + '?all=true'
         return self._request('DELETE', url)
 
     def get_all_tokens(self):
@@ -469,7 +500,7 @@ class FortifyApi(object):
         Get all tokens for all users
         :return:
         """
-        url = "/api/v1/tokens?start=0&limit=200"
+        url = "/api/v1/tokens?start=-1&limit=-1"
         return self._request('GET', url)
 
     def _request(self, method, url, params=None, files=None, data=None, headers=None, stream=False):
@@ -494,8 +525,7 @@ class FortifyApi(object):
                                             auth=(self.username, self.password), stream=stream)
             elif self.auth_type == 'token':
                 response = requests.request(method=method, url=self.host + url, params=params, files=files,
-                                            headers=headers, data=data,
-                                            timeout=self.timeout, verify=self.verify_ssl,
+                                            headers=headers, data=data, timeout=self.timeout, verify=self.verify_ssl,
                                             auth=FortifyTokenAuth(self.token), stream=stream)
             else:
                 response = requests.request(method=method, url=self.host + url, params=params, files=files,
