@@ -23,16 +23,41 @@ Example
 
 ::
 
-    # import the package
-    from fortifyapi import fortify
+import os
+import locale
+from fortifyapi.fortify import FortifyApi
 
-    # setup fortify ssc connection information
-    host = 'https://localhost:8443/'
+# Set encoding
+os.environ["PYTHONIOENCODING"] = "utf-8"
+myLocale = locale.setlocale(category=locale.LC_ALL, locale="en_GB.UTF-8")
 
-    # instantiate the fortify api wrapper
-    ssc = fortify.FortifyApi(host)
+# Set vars for connection
+url = 'https://some-ssc-url/ssc'
+user = 'insert ssc user'
+password = 'insert ssc user password'
 
-    # Do something
+# Authenticate and retrieve token
+def token():
+    api = FortifyApi(host=url, username=user, password=password, verify_ssl=False)
+    response = api.get_token()
+    return response.data['data']['token']
+
+# Re-use token in all requests
+def api():
+    api = FortifyApi(host=url, token=token(), verify_ssl=False)
+    return api
+
+# List ID, Project/application Version
+def list():
+    response = api().get_all_project_versions()
+    data = response.data['data']
+    for version in data:
+        print("{0:8} {1:30} {2:30}".format(version['id'], version['project']['name'], version['name']).encode(
+            'utf-8', errors='ignore').decode())
+
+if __name__ == '__main__':
+    print("{}".format(list()))
+    
 
 Supporting information for each method available can be found in the `documentation <https://fortifyadmin.github.io/fortifyapi/>`__.
 
