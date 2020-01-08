@@ -193,6 +193,8 @@ class FortifyApi(object):
             {"identifier": "com.fortify.manager.BLL.processingrules.QuickScanProcessingRule",
              "enabled": False},
             {"identifier": "com.fortify.manager.BLL.processingrules.FileCountProcessingRule",
+             "enabled": False},
+            {"identifier": "com.fortify.manager.BLL.processingrules.BuildProjectProcessingRule",
              "enabled": False}
         ]
         url = '/api/v1/projectVersions/' + str(version_id) + '/resultProcessingRules'
