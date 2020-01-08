@@ -513,6 +513,24 @@ class FortifyApi(object):
         url = "/api/v1/tokens?start=0&limit=200"
         return self._request('GET', url)
 
+    #TODO: fix expire_date to one year out
+    def set_token(self, description, token_type, expire_date="2021-11-29T22:40:11.000+0000"):
+        """
+        Create any type of SSC token required
+        :param description:
+        :param token_type:
+        :return:
+        """
+        data = {
+            "description": description,
+            "type": token_type,
+            "terminalDate": expire_date
+        }
+
+        data = json.dumps(data)
+        url = "/api/v1/tokens"
+        return self._request('POST', url, data=data)
+    
     def _request(self, method, url, params=None, files=None, json=None, data=None, headers=None, stream=False):
         """Common handler for all HTTP requests."""
         if not params:
