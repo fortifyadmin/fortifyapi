@@ -166,7 +166,7 @@ class FortifyApi(object):
                                         )
         return json_application_version
 
-    def create_result_processing_rules(self, version_id):
+    def set_processing_rules(self, version_id):
         """
         :param version_id: SSC Project Version to modify
         :return: A response object changing all required processing default fields from true to false
@@ -197,6 +197,14 @@ class FortifyApi(object):
         ]
         url = '/api/v1/projectVersions/' + str(version_id) + '/resultProcessingRules'
         return self._request('PUT', url, json=data)
+    
+    def get_processing_rules(self, version_id):
+        """
+        :param version_id: Project Version ID from SSC to query
+        :return: Listing of all result processing rules for a given SSC project version
+        """
+        url = '/api/v1/projectVersions/' + str(version_id) + '/resultProcessingRules'
+        return self._request('GET', url)
 
     def create_application_version(self, application_name, application_template, version_name, description,
                                    application_id=None):
