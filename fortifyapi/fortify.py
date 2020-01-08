@@ -510,7 +510,7 @@ class FortifyApi(object):
         Get all tokens for all users
         :return:
         """
-        url = "/api/v1/tokens?start=-1&limit=-1"
+        url = "/api/v1/tokens?start=0&limit=200"
         return self._request('GET', url)
 
     def _request(self, method, url, params=None, files=None, json=None, data=None, headers=None, stream=False):
