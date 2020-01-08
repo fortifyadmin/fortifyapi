@@ -167,36 +167,36 @@ class FortifyApi(object):
         return json_application_version
 
     def create_result_processing_rules(self, version_id):
-        data = dict(httpVerb='PUT',
-                    postData=[dict(
-                        values={
-                          "identifier": "com.fortify.manager.BLL.processingrules.BuildProjectProcessingRule",
-                          "enabled": 'false',
-                          "identifier": "com.fortify.manager.BLL.processingrules.FileCountProcessingRule",
-                          "enabled": 'false',
-                          "identifier": "com.fortify.manager.BLL.processingrules.FortifyAnnotationsProcessingRule",
-                          "enabled": 'false',
-                          "identifier": "com.fortify.manager.BLL.processingrules.LOCCountProcessingRule",
-                          "enabled": 'false',
-                          "identifier": "com.fortify.manager.BLL.processingrules.NewerEngineVersionProcessingRule",
-                          "enabled": 'false',
-                          "identifier": "com.fortify.manager.BLL.processingrules.RulePackVersionProcessingRule",
-                          "enabled": 'false',
-                          "identifier": "com.fortify.manager.BLL.processingrules.ValidCertificationProcessingRule",
-                          "enabled": 'false',
-                          "identifier": "com.fortify.manager.BLL.processingrules.WarningProcessingRule",
-                          "enabled": 'false',
-                          "identifier": "com.fortify.manager.BLL.processingrules.AuditedAnalysisRule",
-                          "enabled": 'false',
-                          "identifier": "com.fortify.manager.BLL.processingrules.PendingApprovalChecker",
-                          "enabled": 'false'
-                        }
-                    )]
-                    )
-        url = self.host + '/api/v1/projectVersions/' + str(version_id) + '/resultProcessingRules'
-        return self._request('PUT', url, data=data)
-        #url = self.host + '/api/v1/projectVersions/' + str(version_id) + '/resultProcessingRules',
-        #data = json.dumps(json_application_version)
+        """
+        :param version_id: SSC Project Version to modify
+        :return: A response object changing all required processing default fields from true to false
+        """
+        data = [
+            {"identifier": "com.fortify.manager.BLL.processingrules.ExternalListVersionProcessingRule",
+            "enabled": False},
+            {"identifier": "com.fortify.manager.BLL.processingrules.FortifyAnnotationsProcessingRule",
+             "enabled": False},
+            {"identifier": "com.fortify.manager.BLL.processingrules.LOCCountProcessingRule",
+             "enabled": False},
+            {"identifier": "com.fortify.manager.BLL.processingrules.NewerEngineVersionProcessingRule",
+             "enabled": False},
+            {"identifier": "com.fortify.manager.BLL.processingrules.RulePackVersionProcessingRule",
+             "enabled": False},
+            {"identifier": "com.fortify.manager.BLL.processingrules.ValidCertificationProcessingRule",
+             "enabled": False},
+            {"identifier": "com.fortify.manager.BLL.processingrules.WarningProcessingRule",
+             "enabled": False},
+            {"identifier": "com.fortify.manager.BLL.processingrules.AuditedAnalysisRule",
+             "enabled": False},
+            {"identifier": "com.fortify.manager.BLL.processingrules.PendingApprovalChecker",
+             "enabled": False},
+            {"identifier": "com.fortify.manager.BLL.processingrules.QuickScanProcessingRule",
+             "enabled": False},
+            {"identifier": "com.fortify.manager.BLL.processingrules.FileCountProcessingRule",
+             "enabled": False}
+        ]
+        url = '/api/v1/projectVersions/' + str(version_id) + '/resultProcessingRules'
+        return self._request('PUT', url, json=data)
 
     def create_application_version(self, application_name, application_template, version_name, description,
                                    application_id=None):
@@ -503,7 +503,7 @@ class FortifyApi(object):
         url = "/api/v1/tokens?start=-1&limit=-1"
         return self._request('GET', url)
 
-    def _request(self, method, url, params=None, files=None, data=None, headers=None, stream=False):
+    def _request(self, method, url, params=None, files=None, json=None, data=None, headers=None, stream=False):
         """Common handler for all HTTP requests."""
         if not params:
             params = {}
@@ -520,16 +520,16 @@ class FortifyApi(object):
 
             if self.auth_type == 'basic':
                 response = requests.request(method=method, url=self.host + url, params=params, files=files,
-                                            headers=headers, data=data,
+                                            headers=headers, json=json, data=data,
                                             timeout=self.timeout, verify=self.verify_ssl,
                                             auth=(self.username, self.password), stream=stream)
             elif self.auth_type == 'token':
                 response = requests.request(method=method, url=self.host + url, params=params, files=files,
-                                            headers=headers, data=data, timeout=self.timeout, verify=self.verify_ssl,
-                                            auth=FortifyTokenAuth(self.token), stream=stream)
+                                            headers=headers, json=json, data=data, timeout=self.timeout, 
+                                            verify=self.verify_ssl, auth=FortifyTokenAuth(self.token), stream=stream)
             else:
                 response = requests.request(method=method, url=self.host + url, params=params, files=files,
-                                            headers=headers, data=data,
+                                            headers=headers, json=json, data=data,
                                             timeout=self.timeout, verify=self.verify_ssl, stream=stream)
 
             try:
