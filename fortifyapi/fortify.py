@@ -226,21 +226,20 @@ class FortifyApi(object):
         issue_template = self.get_issue_template_id(project_template_name=application_template)
         issue_template_id = issue_template.data['data'][0]['id']
 
-        json_application_version = dict(name=version_name,
-                                        description=description,
-                                        active=True,
-                                        committed=False,
-                                        project={
-                                            'name': application_name,
-                                            'description': description,
-                                            'issueTemplateId': issue_template_id,
-                                            'id': application_id
-                                        },
-                                        issueTemplateId=issue_template_id)
+        data = dict(name=version_name,
+                    description=description,
+                    active=True,
+                    committed=False,
+                    project={
+                        'name': application_name,
+                        'description': description,
+                        'issueTemplateId': issue_template_id,
+                        'id': application_id
+                    },
+                    issueTemplateId=issue_template_id)
 
-        data = json.dumps(json_application_version)
         url = '/api/v1/projectVersions'
-        return self._request('POST', url, data=data)
+        return self._request('POST', url, json=data)
 
     def download_artifact(self, artifact_id):
         """
@@ -364,13 +363,13 @@ class FortifyApi(object):
 
         url = "/api/v1/fileTokens"
         if purpose == 'UPLOAD':
-            data = json.dumps(
+            data = (
                 {
                     "fileTokenType": "UPLOAD"
                 }
             )
         elif purpose == 'DOWNLOAD':
-            data = json.dumps(
+            data = (
                 {
                     "fileTokenType": "DOWNLOAD"
                 }
@@ -378,7 +377,7 @@ class FortifyApi(object):
         else:
             return FortifyResponse(message='attribute purpose must be either UPLOAD or DOWNLOAD', success=False)
 
-        return self._request('POST', url, data=data)
+        return self._request('POST', url, json=data)
 
     def get_issue_template(self, project_template_id):
         """
@@ -446,9 +445,8 @@ class FortifyApi(object):
             "type": "UnifiedLoginToken"
         }
 
-        data = json.dumps(data)
         url = '/api/v1/tokens'
-        return self._request('POST', url, data=data)
+        return self._request('POST', url, json=data)
 
     def post_attribute_definition(self, attribute_definition):
         """
@@ -456,8 +454,7 @@ class FortifyApi(object):
         :return:
         """
         url = '/api/v1/attributeDefinitions'
-        data = json.dumps(attribute_definition)
-        return self._request('POST', url, data=data)
+        return self._request('POST', url, json=attribute_definition)
 
     def upload_artifact_scan(self, file_path, project_version_id):
         """
@@ -527,9 +524,8 @@ class FortifyApi(object):
             "terminalDate": expire_date
         }
 
-        data = json.dumps(data)
         url = "/api/v1/tokens"
-        return self._request('POST', url, data=data)
+        return self._request('POST', url, json=data)
     
     def _request(self, method, url, params=None, files=None, json=None, data=None, headers=None, stream=False):
         """Common handler for all HTTP requests."""
