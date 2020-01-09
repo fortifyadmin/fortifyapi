@@ -58,9 +58,6 @@ Example
     if __name__ == '__main__':
          list()
 
-
-Supporting information for each method available can be found in the `documentation <https://fortifyadmin.github.io/fortifyapi/>`__.
-
 Bugs and Feature Requests
 ~~~~~~~~~~~~~~~~~~~~~~~~~
 
