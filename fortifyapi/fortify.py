@@ -491,7 +491,7 @@ class FortifyApi(object):
         :param id:
         :return:
         """
-        url = "/api/v1/tokens" + str(id)
+        url = "/api/v1/tokens/" + str(id)
         return self._request('DELETE', url)
 
     def delete_all_user_tokens(self):
