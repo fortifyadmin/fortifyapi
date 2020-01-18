@@ -527,6 +527,12 @@ class FortifyApi(object):
         url = "/api/v1/tokens"
         return self._request('POST', url, json=data)
     
+    #TODO: implement
+    def rule_upload(self):
+         # post to https://fortsec.devsnc.com/ssc/upload/rulepackUpload.html?mat=token 
+        url = "/api/v1/tokens/upload/rulepackUpload.html?mat=" + token + rulefiles
+        return self._request('POST', url, json=data)
+    
     def _request(self, method, url, params=None, files=None, json=None, data=None, headers=None, stream=False):
         """Common handler for all HTTP requests."""
         if not params:
