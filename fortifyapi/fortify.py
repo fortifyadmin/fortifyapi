@@ -240,7 +240,16 @@ class FortifyApi(object):
 
         url = '/api/v1/projectVersions'
         return self._request('POST', url, json=data)
-
+    
+    def delete_application_version(self, id):
+        """
+        Delete a given application or project version from SSC
+        :param id: Project Version ID
+        :return:
+        """
+        url = "/api/v1/projectVersions/" + str(id)
+        return self._request('DELETE', url)
+    
     def download_artifact(self, artifact_id):
         """
         You might use this method like this, for example
