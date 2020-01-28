@@ -1,5 +1,2 @@
-include README.md LICENSE.txt CONTRIBUTING.md requirements.txt
-include dist/fortifyadmin
-recursive-include images *.jpg
-recursive-exclude * __pycache__
-recursive-exclude * *.py[co]
+include docs/*
+include *.rst
