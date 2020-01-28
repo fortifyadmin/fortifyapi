@@ -536,12 +536,33 @@ class FortifyApi(object):
         url = "/api/v1/tokens"
         return self._request('POST', url, json=data)
     
-    #TODO: implement
-    def rule_upload(self):
-         # post to https://fortsec.devsnc.com/ssc/upload/rulepackUpload.html?mat=token 
-        url = "/api/v1/tokens/upload/rulepackUpload.html?mat=" + token + rulefiles
-        return self._request('POST', url, json=data)
-    
+    def rule_upload(self, file_path):
+        """
+        Upload rulepack to Fortify SSC
+        :param file_path:
+        :return:
+        """
+        upload = self.get_file_token('UPLOAD')
+        if upload is None or upload.data['data'] is None:
+            return FortifyResponse(message='Failed to get the SSC upload file token', success=False)
+
+        file_token = upload.data['data']['token']
+        url = "/api/v1/tokens/upload/rulepackUpload.html?mat=" + file_token
+        files = {'file': (ntpath.basename(file_path), open(file_path, 'rb'))}
+
+        headers = {
+            'Accept': 'Accept:application/xml, text/xml, */*; q=0.01',
+            'Accept-Encoding': 'gzip, deflate, br',
+            'Connection': 'keep-alive'
+        }
+
+        params = {
+            'Upload': "Submit Query",
+            'Filename': ntpath.basename(file_path)
+        }
+
+        return self._request('POST', url, params, files=files, stream=True, headers=headers)
+
     def _request(self, method, url, params=None, files=None, json=None, data=None, headers=None, stream=False):
         """Common handler for all HTTP requests."""
         if not params:
