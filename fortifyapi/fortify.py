@@ -520,7 +520,7 @@ class FortifyApi(object):
         return self._request('GET', url)
 
     #TODO: fix expire_date to one year out
-    def set_token(self, description, token_type, expire_date="2021-11-29T22:40:11.000+0000"):
+    def set_token(self, description, token_type, expire_date="2021-12-29T22:40:11.000+0000"):
         """
         Create any type of SSC token required
         :param description:
@@ -535,7 +535,8 @@ class FortifyApi(object):
 
         url = "/api/v1/tokens"
         return self._request('POST', url, json=data)
-    
+
+    #TODO change to '/api/v1/coreRulepacks/'
     def rule_upload(self, file_path):
         """
         Upload rulepack to Fortify SSC
@@ -562,6 +563,27 @@ class FortifyApi(object):
         }
 
         return self._request('POST', url, params, files=files, stream=True, headers=headers)
+
+    def get_all_issue_aging(self):
+        """
+         :return: Get total summary of applicationVersions, averageDaysToRemediate, averageDaysToReview, filesScanned,
+         issuesPendingReview, issuesRemediated, linesOfCode, openIssues, openIssuesReviewed
+         """
+        url = "/api/v1/portlets/issueaging"
+        return self._request('GET', url)
+
+    def get_issue_summaries_project_version(self, version_id, series='DEFAULT', group='ISSUE_MAPPED_CATEGORY'):
+       """
+
+       :param version_id:
+       :param series: SCAN_PRODUCT, ISSUE_FRIORITY, DEFAULT, ISSUE_FOLDER, ISSUE_CORRELATED
+       :param group: APP_NAME, SCAN_DATE, SCAN_PRODUCT, ISSUE_FOLDER, ISSUE_CATEGORY, ISSUE_KINGDOM, ISSUE_FILENAME, ISSUE_FRIORITY,
+       ISSUE_AUDITED, ISSUE_PACKAGE_NAME, ISSUE_CLASS_NAME, ISSUE_FUNCTION_NAME, ISSUE_MAPPED_CATEGORY, FOLDER_FOLDER,
+       ISSUE_{name of issue attribute}, EXTERNALLIST_{external category name}, CUSTOMTAG_{custom tag name}.
+       :return:
+       """
+       url = '/api/v1/projectVersions/' + str(version_id) + '/issueSummaries?seriestype=' + series + '&groupaxistype=' + group
+       return self._request('GET', url)
 
     def _request(self, method, url, params=None, files=None, json=None, data=None, headers=None, stream=False):
         """Common handler for all HTTP requests."""
