@@ -445,13 +445,14 @@ class FortifyApi(object):
         url = "/api/v1/projects?start=-1&limit=-1"
         return self._request('GET', url)
 
-    def get_token(self, description):
+    def get_token(self, description, type='UnifiedLoginToken'):
         """
+        Token types include UnifiedLoginToken, UploadFileTransferToken, DownloadFileTransferToken
         :return: A response object with data containing create date, terminal date, and the actual token
         """
         data = {
             "description": description,
-            "type": "UnifiedLoginToken"
+            "type": type
         }
 
         url = '/api/v1/tokens'
@@ -536,8 +537,25 @@ class FortifyApi(object):
         url = "/api/v1/tokens"
         return self._request('POST', url, json=data)
 
+    def rulepack_list(self):
+        """
+        List all rules on an SSC instance
+        :return:
+        """
+        url = "/api/v1/coreRulepacks"
+        return self._request('GET', url)
+
+    def rulepack_delete(self, rulepack_id):
+        """
+        Delete a given rulepack by ID
+        :param rulepack_id:
+        :return:
+        """
+        url = "/api/v1/coreRulepacks/" + str(rulepack_id)
+        return self._request('DELETE', url)
+
     #TODO change to '/api/v1/coreRulepacks/', "file=@rule.xml;type=text/xml, 'Content-Type': 'multipart/form-data',
-    def rule_upload(self, file_path):
+    def rulepack_upload(self, file_path):
         """
         Upload rulepack to Fortify SSC
         :param file_path:
@@ -552,12 +570,14 @@ class FortifyApi(object):
         files = {'file': (ntpath.basename(file_path), open(file_path, 'rb'))}
 
         headers = {
-            'Accept': 'Accept:application/xml, text/xml, */*; q=0.01',
+            'Accept': 'application/json',
             'Content-Type': 'multipart/form-data',
+            'Accept-Encoding': 'gzip, deflate',
             'Connection': 'keep-alive'
         }
 
         params = {
+            'clientVersion': self.client_version,
             'Upload': "Submit Query",
             'Filename': ntpath.basename(file_path)
         }
@@ -574,12 +594,11 @@ class FortifyApi(object):
 
     def get_project_version_issues(self, version_id):
         """
-
         :param version_id:
         :return:
         """
         url = '/api/v1/projectVersions/' + str(version_id) + '/issues?start=0&limit=200&showhidden=false&showremoved=false' \
-                                                        '&showsuppressed=false&showshortfilenames=false'
+                                                             '&showsuppressed=false&showshortfilenames=false'
         return self._request('GET', url)
 
     def get_project_version_issue_details(self, version_id):
@@ -590,6 +609,49 @@ class FortifyApi(object):
         """
         url = '/api/v1/issueDetails/' + str(version_id)
         return self._request('GET', url)
+
+    def get_cloud_pool_list(self):
+        """
+        Get listing of all cloud pools
+        :return:
+        """
+        url = '/api/v1/cloudpools'
+        return self._request('GET', url)
+
+    def get_cloud_worker_list(self):
+        """
+        Get listing of all cloud sensors/workers
+        :return:
+        """
+        url = '/api/v1/cloudworker'
+        return self._request('GET', url)
+
+    def set_cloud_pool(self, description, name):
+        """
+        Creates a cloudscan pool
+        :param description:
+        :param name:
+        :return:
+        """
+        data = {
+            "description": description,
+            "name": name
+        }
+        url = '/api/v1/cloudpools'
+        return self._request('POST', url, json=data)
+
+    def set_cloud_worker(self, worker_uuid, pool_id):
+        """
+        Assignes a cloudscan worker to a pool
+        :param pool_id: ID of cloudpool
+        :param worker_uuid: uuid from the cloudworker
+        :return:
+        """
+        data = {
+                "workerUuids": [str(worker_uuid)]
+        }
+        url = '/cloudpools/' + pool_id + '/workers/action/assign'
+        return self._request('POST', url, json=data)
 
     def _request(self, method, url, params=None, files=None, json=None, data=None, headers=None, stream=False):
         """Common handler for all HTTP requests."""
