@@ -592,22 +592,26 @@ class FortifyApi(object):
         url = "/api/v1/portlets/issueaging"
         return self._request('GET', url)
 
-    def get_project_version_issues(self, version_id):
+    def get_project_version_issues(self, version_id, orderby='friority'):
         """
+        Issues per application/project version, with optional orderby query param
         :param version_id:
-        :return:
+        :return: a List w/ no Project Version Name
         """
-        url = '/api/v1/projectVersions/' + str(version_id) + '/issues?start=0&limit=200&showhidden=false&showremoved=false' \
-                                                             '&showsuppressed=false&showshortfilenames=false'
+        url = '/api/v1/projectVersions/' + str(version_id) + '/issues?start=0&limit=-1&' + orderby + '&' \
+                                                             'showhidden=false&' \
+                                                             'showremoved=false&showsuppressed=false&' \
+                                                             'showshortfilenames=false'
         return self._request('GET', url)
 
-    def get_project_version_issue_details(self, version_id):
+    def get_project_version_issue_details(self, issue_id):
         """
-
-        :param version_id:
-        :return:
+        Returns trace analysis and other details of a given issue.  The issue ID can be found from the /issues or
+        projectVersions endpoint.
+        :param issue_id:
+        :return: full detail of a given issue
         """
-        url = '/api/v1/issueDetails/' + str(version_id)
+        url = '/api/v1/issueDetails/' + str(issue_id)
         return self._request('GET', url)
 
     def get_cloud_pool_list(self):
