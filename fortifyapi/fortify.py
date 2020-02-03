@@ -536,7 +536,7 @@ class FortifyApi(object):
         url = "/api/v1/tokens"
         return self._request('POST', url, json=data)
 
-    #TODO change to '/api/v1/coreRulepacks/'
+    #TODO change to '/api/v1/coreRulepacks/', "file=@rule.xml;type=text/xml, 'Content-Type': 'multipart/form-data',
     def rule_upload(self, file_path):
         """
         Upload rulepack to Fortify SSC
@@ -553,7 +553,7 @@ class FortifyApi(object):
 
         headers = {
             'Accept': 'Accept:application/xml, text/xml, */*; q=0.01',
-            'Accept-Encoding': 'gzip, deflate, br',
+            'Content-Type': 'multipart/form-data',
             'Connection': 'keep-alive'
         }
 
@@ -572,18 +572,24 @@ class FortifyApi(object):
         url = "/api/v1/portlets/issueaging"
         return self._request('GET', url)
 
-    def get_issue_summaries_project_version(self, version_id, series='DEFAULT', group='ISSUE_MAPPED_CATEGORY'):
-       """
+    def get_project_version_issues(self, version_id):
+        """
 
-       :param version_id:
-       :param series: SCAN_PRODUCT, ISSUE_FRIORITY, DEFAULT, ISSUE_FOLDER, ISSUE_CORRELATED
-       :param group: APP_NAME, SCAN_DATE, SCAN_PRODUCT, ISSUE_FOLDER, ISSUE_CATEGORY, ISSUE_KINGDOM, ISSUE_FILENAME, ISSUE_FRIORITY,
-       ISSUE_AUDITED, ISSUE_PACKAGE_NAME, ISSUE_CLASS_NAME, ISSUE_FUNCTION_NAME, ISSUE_MAPPED_CATEGORY, FOLDER_FOLDER,
-       ISSUE_{name of issue attribute}, EXTERNALLIST_{external category name}, CUSTOMTAG_{custom tag name}.
-       :return:
-       """
-       url = '/api/v1/projectVersions/' + str(version_id) + '/issueSummaries?seriestype=' + series + '&groupaxistype=' + group
-       return self._request('GET', url)
+        :param version_id:
+        :return:
+        """
+        url = '/api/v1/projectVersions/' + str(version_id) + '/issues?start=0&limit=200&showhidden=false&showremoved=false' \
+                                                        '&showsuppressed=false&showshortfilenames=false'
+        return self._request('GET', url)
+
+    def get_project_version_issue_details(self, version_id):
+        """
+
+        :param version_id:
+        :return:
+        """
+        url = '/api/v1/issueDetails/' + str(version_id)
+        return self._request('GET', url)
 
     def _request(self, method, url, params=None, files=None, json=None, data=None, headers=None, stream=False):
         """Common handler for all HTTP requests."""
