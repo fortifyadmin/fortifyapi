@@ -18,10 +18,6 @@ if sys.argv[-1] == 'build':
     os.system('python setup.py sdist bdist_wheel')
     sys.exit(0)
 
-if sys.argv[-1] == 'publish':
-    os.system('python setup.py sdist bdist_wheel --formats=zip')
-    sys.exit(0)
-
 if sys.argv[-1] == 'tag':
     os.system("git tag -a %s -m 'version %s'" % (version, version))
     os.system("git push --tags")
