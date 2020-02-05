@@ -429,12 +429,19 @@ class FortifyApi(object):
         url = "/api/v1/projectVersions?start=-1&limit=-1"
         return self._request('GET', url)
 
+    def get_project_version(self, version_id):
+        """
+        :version_id: Project Version ID
+        :return: Details of a Project Version
+        """
+        url = "/api/v1/projectVersions/" + version_id
+        return self._request('GET', url)
+    
     #TODO: deprecate
     def get_project_versions(self, project_name):
         """
         :return: A response object with data containing project versions
         """
-
         url = "/api/v1/projectVersions?limit=0&q=project.name:\"" + project_name + "\""
         return self._request('GET', url)
 
