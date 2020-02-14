@@ -511,6 +511,34 @@ class FortifyApi(object):
 
         return self._request('POST', url, params, files=files, stream=True, headers=headers)
 
+    #TODO change to '/api/v1/coreRulepacks/', "file=@rule.xml;type=text/xml, 'Content-Type': 'multipart/form-data',
+    def rulepack_upload(self, file_path):
+        """
+        Upload rulepack to Fortify SSC
+        :param file_path:
+        :return:
+        """
+        upload = self.get_file_token('UPLOAD')
+        if upload is None or upload.data['data'] is None:
+            return FortifyResponse(message='Failed to get the SSC upload file token', success=False)
+
+        file_token = upload.data['data']['token']
+        url = "/upload/rulepackUpload.html?mat=" + file_token
+        files = {'file': (ntpath.basename(file_path), open(file_path, 'rb'))}
+
+        headers = {
+            'Accept': 'Accept:application/xml, text/xml, */*; q=0.01',
+            'Accept-Encoding': 'gzip, deflate',
+            'Connection': 'keep-alive'
+        }
+
+        params = {
+            'clientVersion': self.client_version,
+            'Filename': ntpath.basename(file_path)
+        }
+
+        return self._request('POST', url, params, files=files, stream=True, headers=headers)
+
     def delete_token(self, id):
         """
         Delete a token by ID from the auth-token-controller
@@ -569,36 +597,6 @@ class FortifyApi(object):
         """
         url = "/api/v1/coreRulepacks/" + str(rulepack_id)
         return self._request('DELETE', url)
-
-    #TODO change to '/api/v1/coreRulepacks/', "file=@rule.xml;type=text/xml, 'Content-Type': 'multipart/form-data',
-    def rulepack_upload(self, file_path):
-        """
-        Upload rulepack to Fortify SSC
-        :param file_path:
-        :return:
-        """
-        upload = self.get_file_token('UPLOAD')
-        if upload is None or upload.data['data'] is None:
-            return FortifyResponse(message='Failed to get the SSC upload file token', success=False)
-
-        file_token = upload.data['data']['token']
-        url = "/api/v1/tokens/upload/rulepackUpload.html?mat=" + file_token
-        files = {'file': (ntpath.basename(file_path), open(file_path, 'rb'))}
-
-        headers = {
-            'Accept': 'application/json',
-            'Content-Type': 'multipart/form-data',
-            'Accept-Encoding': 'gzip, deflate',
-            'Connection': 'keep-alive'
-        }
-
-        params = {
-            'clientVersion': self.client_version,
-            'Upload': "Submit Query",
-            'Filename': ntpath.basename(file_path)
-        }
-
-        return self._request('POST', url, params, files=files, stream=True, headers=headers)
 
     def get_all_issue_aging(self):
         """
