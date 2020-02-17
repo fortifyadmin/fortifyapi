@@ -512,7 +512,7 @@ class FortifyApi(object):
         return self._request('POST', url, params, files=files, stream=True, headers=headers)
 
     #TODO change to '/api/v1/coreRulepacks/', "file=@rule.xml;type=text/xml, 'Content-Type': 'multipart/form-data',
-    def rulepack_upload(self, file_path):
+    def upload_rulepack(self, file_path):
         """
         Upload rulepack to Fortify SSC
         :param file_path:
@@ -581,7 +581,7 @@ class FortifyApi(object):
         url = "/api/v1/tokens"
         return self._request('POST', url, json=data)
 
-    def rulepack_list(self):
+    def get_all_rulepacks(self):
         """
         List all rules on an SSC instance
         :return:
@@ -589,7 +589,7 @@ class FortifyApi(object):
         url = "/api/v1/coreRulepacks"
         return self._request('GET', url)
 
-    def rulepack_delete(self, rulepack_id):
+    def delete_rulepack(self, rulepack_id):
         """
         Delete a given rulepack by ID
         :param rulepack_id:
@@ -597,6 +597,16 @@ class FortifyApi(object):
         """
         url = "/api/v1/coreRulepacks/" + str(rulepack_id)
         return self._request('DELETE', url)
+
+    def update_rulepacks(self):
+        """
+        Described as a Dolimport, update rulepacks from the public fortify server and return status with rulepacks
+        updated.
+        Update Fortify Stock Rulepacks
+        :return:
+        """
+        url = "/api/v1/updateRulepacks"
+        return self._request('GET', url)
 
     def get_all_issue_aging(self):
         """
