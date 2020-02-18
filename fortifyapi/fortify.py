@@ -539,13 +539,13 @@ class FortifyApi(object):
 
         return self._request('POST', url, params, files=files, stream=True, headers=headers)
 
-    def delete_token(self, id):
+    def delete_token(self, token_id):
         """
         Delete a token by ID from the auth-token-controller
         :param id:
         :return:
         """
-        url = "/api/v1/tokens/" + str(id)
+        url = "/api/v1/tokens/" + str(token_id)
         return self._request('DELETE', url)
 
     def delete_all_user_tokens(self):
@@ -680,6 +680,78 @@ class FortifyApi(object):
         }
         url = '/cloudpools/' + pool_id + '/workers/action/assign'
         return self._request('POST', url, json=data)
+
+    def get_all_ldap_users(self):
+        """
+        List all ldap users
+        :return:
+        """
+        url = '/api/v1/ldapObjects'
+        return self._request('GET', url)
+
+    def set_ldap_user(self, distinguished_name, project_version_id):
+        """
+        Add LDAP user to Fortify SSC
+        :return:
+        """
+        data = { "distinguishedName": distinguished_name,
+                 "roles": [{
+                 "permissionIds": [ str(project_version_id)]
+                 }]
+               }
+        url = '/api/v1/ldapObjects'
+        return self._request('POST', url, json=data)
+
+    def get_all_auth_entities(self):
+        """
+        Manage aggregated list of authentication entities (local and LDAP user accounts). LDAP groups can be accessed
+        via a linked resource. This controller does not support creation of new accounts. To create new local or LDAP
+        user accounts, use the corresponding specific controllers.  In other words Give me a listing of all users local
+        or LDAP, for identying the auth_entity_id to be used in get_auth_entity, and set_auth_entity_to_version
+        :return:
+        """
+        url = '/api/v1/authEntities?fulltextsearch=false'
+        return self._request('GET', url)
+
+    def get_auth_entity(self, auth_entity_id):
+        """
+        Manage the association of application versions to the authentication entity (local or LDAP user)
+        :param auth_entity_id:
+        :return:
+        """
+        url = '/api/v1/authEntities/' + auth_entity_id + '/projectVersions'
+        return self._request('GET', url)
+
+    def modify_auth_entity_to_version(self, auth_entity_id, project_version_id):
+        """
+        TODO: NOT SURE IF NEEDED
+        :param auth_entity_id:
+        :param project_version_id:
+        :return:
+        """
+        data = [project_version_id]
+        url = '/api/v1/authEntities' + auth_entity_id + 'projectVersions'
+        return self._request('PUT', url, json=data)
+
+    def set_auth_entity_to_version(self, auth_entity_id, project_version_id):
+        """
+        Associate the specified application versions to the authentication entity
+        :return:
+        """
+        data = {"projectVersionIds": [str(project_version_id)]}
+        url = '/api/v1/authEntities' + auth_entity_id + 'projectVersions/action/assign'
+        return self._request('POST', url, json=data)
+
+    def get_all_auth_entity_of_project_version(self, project_version_id):
+        """
+        Retrieve the authentication entities associated with this application version.  What this really means is
+        give me the users entitled for a given Project version
+        :param project_version_id:
+        :return: List all users associated with the Project Version
+        """
+        url = '/api/v1//projectVersions/' + str(project_version_id) + '/authEntities?extractusersfromgroups=true&' \
+                                                                      'includeuniversalaccessentities=true'
+        return self._request('GET', url)
 
     def _request(self, method, url, params=None, files=None, json=None, data=None, headers=None, stream=False):
         """Common handler for all HTTP requests."""
