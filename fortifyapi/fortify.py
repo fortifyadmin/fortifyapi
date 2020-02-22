@@ -45,7 +45,7 @@ class FortifyApi(object):
             self.auth_type = 'unauthenticated'
 
     def bulk_create_new_application_version_request(self, version_id, development_phase, development_strategy,
-                                                    accessibility, business_risk_ranking, custom_attribute=('', '')):
+                                                    accessibility, business_risk_ranking, custom_attributes=[]):
         """
         Creates a new Application Version by using the Bulk Request API. 'create_new_project_version' must be used
         before calling this method.
@@ -54,8 +54,8 @@ class FortifyApi(object):
         :param development_strategy: Development Strategy GUID of Version
         :param accessibility: Accessibility GUID of Version
         :param business_risk_ranking: Business Risk Rank GUID of Version
-        :param custom_attribute: Custom Attribute tuple that consists of attributeDefinitionId & Value. Default is a
-                                 empty string tuple.
+        :param custom_attributse: List of custom Attribute tuples that consist of attributeDefinitionId, values, & value. 
+                                  Default is a empty string tuple.
         :return: A response object containing the newly created project and project version
         """
         data = self._bulk_format_new_application_version_payload(version_id=version_id,
@@ -63,7 +63,7 @@ class FortifyApi(object):
                                                                  development_strategy=development_strategy,
                                                                  accessibility=accessibility,
                                                                  business_risk_ranking=business_risk_ranking,
-                                                                 custom_attribute=custom_attribute)
+                                                                 custom_attributes=custom_attributes)
         url = '/api/v1/bulk'
         return self._request('POST', url, data=data)
 
@@ -77,10 +77,10 @@ class FortifyApi(object):
         return json_application_version
 
     def _bulk_format_new_application_version_payload(self, version_id, development_phase, development_strategy,
-                                                     accessibility, business_risk_ranking, custom_attribute):
+                                                     accessibility, business_risk_ranking, custom_attributes):
         json_application_version = dict(requests=[
             self._bulk_create_attributes(version_id, development_phase, development_strategy, accessibility,
-                                         business_risk_ranking, custom_attribute),
+                                         business_risk_ranking, custom_attributes),
             self._bulk_create_responsibilities(version_id),
             self._bulk_create_configurations(version_id),
             self._bulk_create_commit(version_id),
@@ -89,7 +89,7 @@ class FortifyApi(object):
         return json.dumps(json_application_version)
 
     def _bulk_create_attributes(self, version_id, development_phase, development_strategy,
-                                accessibility, business_risk_ranking, custom_attribute):
+                                accessibility, business_risk_ranking, custom_attributes):
         if business_risk_ranking is None:
             business_risk_ranking = 'High'
         json_application_version = dict(
@@ -101,12 +101,15 @@ class FortifyApi(object):
                 self._bulk_format_attribute_definition('7', accessibility),
                 self._bulk_format_attribute_definition('1', business_risk_ranking),
             ])
-
-        if custom_attribute[0] is not '' and custom_attribute[1] is not '':
+        for a in custom_attributes:
+            guid_value = a[1]
+            if guid_value == "":
+                guid_value = None
             json_application_version['postData'].append(
-
-                self._bulk_format_attribute_definition(attribute_definition_id_value=custom_attribute[0],
-                                                       value=custom_attribute[1]))
+                self._bulk_format_attribute_definition(
+                    attribute_definition_id_value=a[0],
+                    guid_value=guid_value,
+                    value=a[2]))
 
         return json_application_version
 
