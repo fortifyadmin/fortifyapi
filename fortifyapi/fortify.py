@@ -654,7 +654,7 @@ class FortifyApi(object):
         Get listing of all cloud sensors/workers
         :return:
         """
-        url = '/api/v1/cloudworker'
+        url = '/api/v1/cloudworkers'
         return self._request('GET', url)
 
     def set_cloud_pool(self, description, name):
