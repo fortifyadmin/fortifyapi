@@ -35,11 +35,12 @@ Example
     url = 'https://some-fortify-host/ssc'
     user = 'Fortify SSC User'
     password = 'Fortify SSC Password'
+    description = 'fortifyapi test client'
     
     # Authenticate and retrieve token
     def token():
         api = FortifyApi(host=url, username=user, password=password, verify_ssl=False)
-        response = api.get_token()
+        response = api.get_token(description=description)
         return response.data['data']['token']
     
     # Re-use token in all requests
