@@ -39,8 +39,8 @@ setup(
     download_url='https://github.com/fortifyadmin/fortifyapi/tarball/' + version,
     license='MIT',
     zip_safe=True,
-    install_requires=['requests'],
-    keywords=['fortify', 'api', 'security', 'software', 'hpe', 'micro focus', 'ssc', 'sast'],
+    install_requires=['requests', 'pandas'],
+    keywords=['fortify', 'api', 'security', 'software', 'microfocus', 'ssc', 'sast'],
     classifiers=[
         'Development Status :: 4 - Beta',
         'Intended Audience :: Developers',
