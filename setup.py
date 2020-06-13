@@ -15,7 +15,7 @@ with open('README.rst', 'r') as f:
 
 # Publish helper
 if sys.argv[-1] == 'build':
-    os.system('python setup.py sdist bdist_wheel')
+    os.system('python setup.py sdist bdist')
     sys.exit(0)
 
 if sys.argv[-1] == 'tag':
