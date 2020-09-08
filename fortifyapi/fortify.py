@@ -198,7 +198,15 @@ class FortifyApi(object):
             {"identifier": "com.fortify.manager.BLL.processingrules.FileCountProcessingRule",
              "enabled": False},
             {"identifier": "com.fortify.manager.BLL.processingrules.BuildProjectProcessingRule",
-             "enabled": False}
+             "enabled": False},
+            {"identifier": "com.fortify.manager.BLL.processingrules.VetoCascadingApprovalProcessingRule",
+              "enabled": False},
+            {"identifier": "com.fortify.manager.BLL.processingrules.PendingApprovalChecker",
+              "enabled": False},
+            {"identifier": "com.fortify.manager.BLL.processingrules.UnknownOrDisallowedAuditedAttrChecker",
+              "enabled": False},
+            { "identifier": "com.fortify.manager.BLL.processingrules.MigrationProcessingRule",
+              "enabled": False} 
         ]
         url = '/api/v1/projectVersions/' + str(version_id) + '/resultProcessingRules'
         return self._request('PUT', url, json=data)
