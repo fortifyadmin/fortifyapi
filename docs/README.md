@@ -108,9 +108,10 @@ Create a new project version under the specified project
 
 #### Parameters
 *project_name*</br>
-*param project_id*</br>
 *param project_template*</br>
 *param version_name*</br>
+*param project_id*</br>
+*param issue_template_id*</br>
 
 - - -
 
