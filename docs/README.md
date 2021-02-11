@@ -103,14 +103,15 @@ Convenience function to set the 'committed' project version attribute to True
 
 - - -
 
-### Create Project Version:
-Create a new project version under the specified project
+### Create Application Version:
+Create a new application (formerly project) version under the specified project
 
 #### Parameters
-*project_name*</br>
-*param project_id*</br>
-*param project_template*</br>
+*application_name*</br>
+*param application_template*</br>
 *param version_name*</br>
+*param application_id (optional)*</br>
+*param issue_template_id (optional)*</br>
 
 - - -
 

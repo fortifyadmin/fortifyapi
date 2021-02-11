@@ -220,22 +220,24 @@ class FortifyApi(object):
         return self._request('GET', url)
 
     def create_application_version(self, application_name, application_template, version_name, description,
-                                   application_id=None):
+                                   application_id=None, issue_template_id=None):
         """
         :param application_name: Project name
         :param application_id: Project ID
         :param application_template: Application template name
         :param version_name: Version name
         :param description: Application Version description
+        :param issue_template_id: Optional for when you already know the id you want to use
         :return: A response object containing the created project version
         """
         # If no application ID is given, sets JSON value to null.
         if application_id is None:
             application_id = 'null'
 
-        # Gets Template ID
-        issue_template = self.get_issue_template_id(project_template_name=application_template)
-        issue_template_id = issue_template.data['data'][0]['id']
+        if issue_template_id is None:
+            # Gets Template ID
+            issue_template = self.get_issue_template_id(project_template_name=application_template)
+            issue_template_id = issue_template.data['data'][0]['id']
 
         data = dict(name=version_name,
                     description=description,
