@@ -762,7 +762,7 @@ class FortifyApi(object):
         :param project_version_id:
         :return: List all users associated with the Project Version
         """
-        url = '/api/v1//projectVersions/' + str(project_version_id) + '/authEntities?extractusersfromgroups=true&' \
+        url = '/api/v1/projectVersions/' + str(project_version_id) + '/authEntities?extractusersfromgroups=true&' \
                                                                       'includeuniversalaccessentities=true'
         return self._request('GET', url)
 
