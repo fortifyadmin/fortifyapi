@@ -755,16 +755,21 @@ class FortifyApi(object):
         url = '/api/v1/authEntities' + auth_entity_id + 'projectVersions/action/assign'
         return self._request('POST', url, json=data)
 
-    def get_all_auth_entity_of_project_version(self, project_version_id):
+    def get_all_auth_entity_of_project_version(self, project_version_id,
+                                               extract_users_from_groups=True, include_universal_access_entities=True):
         """
         Retrieve the authentication entities associated with this application version.  What this really means is
         give me the users entitled for a given Project version
         :param project_version_id:
         :return: List all users associated with the Project Version
         """
-        url = '/api/v1//projectVersions/' + str(project_version_id) + '/authEntities?extractusersfromgroups=true&' \
-                                                                      'includeuniversalaccessentities=true'
-        return self._request('GET', url)
+        url = '/api/v1/projectVersions/' + str(project_version_id) + '/authEntities'
+        params = {
+            'extractusersfromgroups': extract_users_from_groups,
+            'includeuniversalaccessentities': include_universal_access_entities
+        }
+
+        return self._request('GET', url, params)
 
     def _request(self, method, url, params=None, files=None, json=None, data=None, headers=None, stream=False):
         """Common handler for all HTTP requests."""
