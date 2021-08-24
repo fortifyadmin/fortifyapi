@@ -27,37 +27,37 @@ Example
    from locale import LC_ALL, setlocale
    from fortifyapi.fortify import FortifyApi
     
-    # Set encoding
-    environ["PYTHONIOENCODING"] = "utf-8"
-    myLocale = setlocale(category=LC_ALL, locale="en_GB.UTF-8")
+   # Set encoding
+   environ["PYTHONIOENCODING"] = "utf-8"
+   myLocale = setlocale(category=LC_ALL, locale="en_GB.UTF-8")
     
-    # Set vars for connection
-    url = 'https://some-fortify-host/ssc'
-    user = 'Fortify SSC User'
-    password = 'Fortify SSC Password'
-    description = 'fortifyapi test client'
+   # Set vars for connection
+   url = 'https://some-fortify-host/ssc'
+   user = 'Fortify SSC User'
+   password = 'Fortify SSC Password'
+   description = 'fortifyapi test client'
     
-    # Authenticate and retrieve token
-    def token():
-        api = FortifyApi(host=url, username=user, password=password, verify_ssl=False)
-        response = api.get_token(description=description)
-        return response.data['data']['token']
+   # Authenticate and retrieve token
+   def token():
+       api = FortifyApi(host=url, username=user, password=password, verify_ssl=False)
+       response = api.get_token(description=description)
+       return response.data['data']['token']
     
-    # Re-use token in all requests
-    def api():
-        api = FortifyApi(host=url, token=token(), verify_ssl=False)
-        return api
+   # Re-use token in all requests
+   def api():
+       api = FortifyApi(host=url, token=token(), verify_ssl=False)
+       return api
     
-    # List ID, Project/application Version
-    def list():
-        response = api().get_all_project_versions()
-        data = response.data['data']
-        for version in data:
-            print("{0:8} {1:30} {2:30}".format(version['id'], version['project']['name'], version['name']).encode(
-                'utf-8', errors='ignore').decode())
+   # List ID, Project/application Version
+   def list():
+       response = api().get_all_project_versions()
+       data = response.data['data']
+       for version in data:
+           print("{0:8} {1:30} {2:30}".format(version['id'], version['project']['name'], version['name']).encode(
+               'utf-8', errors='ignore').decode())
     
-    if __name__ == '__main__':
-         list()
+   if __name__ == '__main__':
+        list()
 
 Bugs and Feature Requests
 ~~~~~~~~~~~~~~~~~~~~~~~~~

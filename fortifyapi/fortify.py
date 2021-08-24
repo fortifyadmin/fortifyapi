@@ -18,7 +18,7 @@ from . import __version__ as version
 
 class FortifyApi(object):
     def __init__(self, host, username=None, password=None, token=None, verify_ssl=True, timeout=60, user_agent=None,
-                 client_version='20.10'):
+                 client_version='21.10'):
 
         self.host = host
         self.username = username
@@ -360,14 +360,14 @@ class FortifyApi(object):
         """
         :return: A response object containing all attribute definitions
         """
-        url = '/api/v1/attributeDefinitions?start=-1&limit=-1'
+        url = '/api/v1/attributeDefinitions?start=0&limit=-1'
         return self._request('GET', url)
 
     def get_cloudscan_jobs(self):
         """
         :return: A response object containing all cloudscan jobs
         """
-        url = '/api/v1/cloudjobs?start=-1&limit=-1'
+        url = '/api/v1/cloudjobs?start=0&limit=-1'
         return self._request('GET', url)
 
     def get_cloudscan_job_status(self, scan_id):
@@ -424,7 +424,7 @@ class FortifyApi(object):
         :param parent_id: parent resource identifier
         :return: A response object containing project version artifacts
         """
-        url = "/api/v1/projectVersions/" + str(parent_id) + "/artifacts?start=-1&limit=-1"
+        url = "/api/v1/projectVersions/" + str(parent_id) + "/artifacts?start=0&limit=-1"
         return self._request('GET', url)
 
     def get_project_version_attributes(self, project_version_id):
@@ -432,14 +432,14 @@ class FortifyApi(object):
         :param project_version_id: Project version id
         :return: A response object containing the project version attributes
         """
-        url = '/api/v1/projectVersions/' + str(project_version_id) + '/attributes/?start=-1&limit=-1'
+        url = '/api/v1/projectVersions/' + str(project_version_id) + '/attributes/?start=0&limit=-1'
         return self._request('GET', url)
 
     def get_all_project_versions(self):
         """
         :return: A response object with data containing project versions
         """
-        url = "/api/v1/projectVersions?start=-1&limit=-1"
+        url = "/api/v1/projectVersions?start=0&limit=-1"
         return self._request('GET', url)
 
     def get_project_version(self, version_id):
@@ -471,7 +471,7 @@ class FortifyApi(object):
         :return: A response object with data containing projects
         """
 
-        url = "/api/v1/projects?start=-1&limit=-1"
+        url = "/api/v1/projects?start=0&limit=-1"
         return self._request('GET', url)
 
     def get_token(self, description, type='UnifiedLoginToken'):
@@ -574,7 +574,7 @@ class FortifyApi(object):
         Get all tokens for all users
         :return:
         """
-        url = "/api/v1/tokens?start=0&limit=200"
+        url = "/api/v1/tokens?start=0&limit=-1"
         return self._request('GET', url)
 
     #TODO: fix expire_date to one year out
