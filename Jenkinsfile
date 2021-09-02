@@ -39,7 +39,7 @@ pipeline {
             steps {
                 sh "git checkout ${BRANCH_NAME}"
                 sh "git reset --hard origin/${BRANCH_NAME}"
-                sh 'bumpversion minor'
+                sh 'bumpversion patch'
                 sh 'python3 setup.py sdist bdist_wheel'
                 withCredentials([usernamePassword(credentialsId: 'public-jenkins-pypi-stabe-user', passwordVariable: 'TWINE_PASSWORD', usernameVariable: 'TWINE_USERNAME')]) {
                     sh "twine upload dist/*"
