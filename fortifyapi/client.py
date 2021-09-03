@@ -6,7 +6,11 @@ from .api import *
 
 class FortifySSCClient:
 
-    def __init__(self, url, auth):
+    def __init__(self, url: str, auth: Union[str, Tuple[str, str]]):
+        """
+        :param url: url to ssc, including the path. E.g. `https://fortifyssc/ssc`
+        :param auth: Authentication, either a token str or a (username, password) tuple
+        """
         self._url = url
         self._auth = auth
         self._api = FortifySSCAPI(url, auth)
