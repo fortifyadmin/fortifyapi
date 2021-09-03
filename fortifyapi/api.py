@@ -1,4 +1,5 @@
 import requests
+from typing import Union, Tuple, Any
 from .exceptions import *
 
 
@@ -6,7 +7,6 @@ class FortifySSCAPI:
     """
     API object to talk to SSC via REST
     """
-    METHOD = Literal['GET', 'PUT', 'POST', 'DELETE', 'PATCH']
 
     def __init__(self, url: str,  auth: Union[str, Tuple[str, str]]):
         """
@@ -77,7 +77,7 @@ class FortifySSCAPI:
         if r.status_code != 200:
             raise AuthException(f"Failed to revoke token - {r.status_code} - {r.text}")
 
-    def construct_request(self, method: METHOD, path: str, data: Any) -> dict:
+    def construct_request(self, method: str, path: str, data: Any) -> dict:
         """
         Construct a request for the bulk request API
 
@@ -155,7 +155,7 @@ class FortifySSCAPI:
         data = {**data, **kwargs}
         return self._request('delete', endpoint, params=data)
 
-    def _request(self, method: METHOD, endpoint: str, **kwargs):
+    def _request(self, method: str, endpoint: str, **kwargs):
         headers = dict(Authorization=f"FortifyToken {self._token}", Accept='application/json')
         r = requests.request(method, f"{self.url}/{endpoint.lstrip('/')}", headers=headers, **kwargs)
         if 200 <= r.status_code >= 299:
