@@ -1,7 +1,9 @@
+from typing import Union, Tuple, Generator
+
 from .exceptions import *
 from .template import *
-from .query import *
-from .api import *
+from .query import Query
+from .api import FortifySSCAPI
 
 
 class FortifySSCClient:
@@ -16,6 +18,7 @@ class FortifySSCClient:
         self._api = FortifySSCAPI(url, auth)
 
         self.projects = Project(self._api, None, self)
+        self.pools = CloudPool(self._api, None, self)
         self.jobs = CloudJob(self._api, None, self)
         self.reports = Report(self._api, None, self)
 
@@ -28,9 +31,9 @@ class FortifySSCClient:
         for e in self._list('/api/v1/engineTypes', **kwargs):
             yield Engine(self._api, e, self)
 
-    def Project(self, obj=None):
-        # why do i have this? unit tests use it only?...
-        return Project(self._api, obj)
+    @property
+    def api(self):
+        return self._api
 
 
 class SSCObject(dict):
@@ -42,101 +45,12 @@ class SSCObject(dict):
     def __str__(self):
         return f"{self.__class__}({super().__str__()})"
 
+    def is_instance(self):
+        return len(self) != 0
 
-class Project(SSCObject):
-
-    def __init__(self, api, obj=None, parent=None):
-        super().__init__(api, obj, parent)
-        self.versions = Version(api, None, self)
-
-    def list(self, **kwargs):
-        with self._api as api:
-            for e in api.page_data('/api/v1/projects', **kwargs):
-                yield Project(self._api, e, self.parent)
-
-    def test(self, application_name):
-        """
-        Check whether the specified application name is already defined in the system
-        :returns: If the application_name was found
-        :rtype: bool
-        """
-        with self._api as api:
-            return api.post(f"/api/v1/projects/action/test", applicationName=application_name)['data']['found']
-
-    def get(self, id):
-        """
-        Get the given project by id
-        :param id:
-        :return: pyssc.Project
-        """
-        with self._api as api:
-            return Project(self._api, api.get(f"/api/v1/projects/{id}")['data'], self.parent)
-
-    def update(self):
-        with self._api as api:
-            return Project(self._api, api.put(f"/api/v1/projects/{self['id']}", self)['data'], self)
-
-    def create(self, project_name, version_name, project_id=None, description="", active=True,
-               commited=False, issue_template_id='Prioritized-HighRisk-Project-Template',
-               template=DefaultVersionTemplate):
-        """
-
-        :param project_name:
-        :param version_name:
-        :param project_id:
-        :param description:
-        :param active:
-        :param commited:
-        :param issue_template_id:
-        :param template:
-        :return: Returns the Version object
-        :rtype: pyssc.Version
-        """
-        with self._api as api:
-            r = api.post(f"/api/v1/projectVersions", {
-                'name': version_name,
-                'description': description,
-                'active': active,
-                'commited': commited,
-                'project': {
-                    'id': project_id,  # if this is None it will create the project
-                    'name': project_name,
-                    'description': description,
-                    'issueTemplateId': issue_template_id
-                },
-                'issueTemplateId': issue_template_id
-            })
-            v = Version(self._api, r['data'], self)
-            v.initialize(template=template)
-            return v
-
-    def upsert(self, project_name, version_name, description="", active=True,
-               commited=False, issue_template_id='Prioritized-HighRisk-Project-Template',
-               template=DefaultVersionTemplate):
-        """ same as create but uses existing project and version"""
-        # see if the project exists
-        q = Query().query("name", project_name)
-        projects = list(self.list(q=q))
-        if len(projects) == 0:
-            return self.create(project_name, version_name, description=description, active=active, commited=commited,
-                        issue_template_id=issue_template_id, template=template)
-        else:
-            # should be the first one
-            project = projects[0]
-            # but check if the version is there...
-            for v in project.versions.list():
-                print(f"name {v['name']}")
-                if v['name'] == version_name:
-                    print('found it')
-                    print(v)
-                    return v
-            return self.create(project_name, version_name, project_id=project['id'], description=description, active=active,
-                        commited=commited, issue_template_id=issue_template_id, template=template)
-
-    def delete(self):
-        # delete every version and project will delete
-        for v in self.versions.list():
-            v.delete()
+    def assert_is_instance(self, msg=None):
+        if not self.is_instance():
+            raise NotAnInstanceException(msg)
 
 
 class Version(SSCObject):
@@ -155,13 +69,20 @@ class Version(SSCObject):
             temp = template(api, self['id'])
             return api.bulk_request(temp.generate())
 
-    def create(self, version_name, description="", active=True, commited=False, template=DefaultVersionTemplate):
+    def create(self, version_name, description="", active=True, committed=False, template=DefaultVersionTemplate):
         """ Creates a version for the CURRENT project """
-        if not self._obj:
-            raise Exception("Cannot create version for empty project - consider using `create_project_version`")
+        self.assert_is_instance("Cannot create version for empty project - consider using `create_project_version`")
         return self.parent.create(self.parent['name'], version_name, description=description, active=active,
-                           commited=commited, project_id=self.parent['id'],
+                           committed=committed, project_id=self.parent['id'],
                            issue_template_id=self.parent['issueTemplateId'], template=template)
+
+    def copy(self, new_name: str, new_description: str = ""):
+        """
+        Copy a project version including findings and finding state.
+        Useful for some operations, e.g. pull requests
+        """
+        return self.create(new_name, new_description, active=self['active'], committed=self['committed'],
+                           template=CloneVersionTemplate)
 
     def list(self, **kwargs):
         if not self.parent:
@@ -176,26 +97,165 @@ class Version(SSCObject):
 
     def delete(self):
         """ Delete the current version """
+        self.assert_is_instance()
         with self._api as api:
             return api.delete(f"/api/v1/projectVersions/{self['id']}")
 
     def get_processing_rules(self, **kwargs):
+        self.assert_is_instance()
         with self._api as api:
             return api.get(f"/api/v1/projectVersions/{self['id']}/resultProcessingRules", **kwargs)
 
     def set_processing_rules(self, rules):
+        self.assert_is_instance()
         with self._api as api:
             return api.put(f"/api/v1/projectVersions/{self['id']}/resultProcessingRules", rules)
 
     def issue_summary(self, series_type='DEFAULT', group_axis_type='ISSUE_FOLDER'):
+        self.assert_is_instance()
         with self._api as api:
             return api.get(f"/api/v1/projectVersions/{self['id']}/issueSummaries",
                            seriestype=series_type,
                            groupaxistype=group_axis_type)['data']
 
 
+class Project(SSCObject):
+
+    def __init__(self, api, obj=None, parent=None):
+        super().__init__(api, obj, parent)
+        self.versions = Version(api, None, self)
+
+    def list(self, **kwargs):
+        """
+        :param kwargs: The request query parameters
+        :returns: Generator of each fortifyapi.Project
+        """
+        with self._api as api:
+            for e in api.page_data('/api/v1/projects', **kwargs):
+                yield Project(self._api, e, self.parent)
+
+    def test(self, application_name: str) -> bool:
+        """
+        Check whether the specified application name is already defined in the system
+        :returns: If the application_name was found
+        """
+        with self._api as api:
+            return api.post(f"/api/v1/projects/action/test", applicationName=application_name)['data']['found']
+
+    def get(self, id):
+        """
+        Get the given project by id
+        :param id:
+        :returns: fortifyapi.Project
+        """
+        with self._api as api:
+            return Project(self._api, api.get(f"/api/v1/projects/{id}")['data'], self.parent)
+
+    def update(self):
+        """
+        :returns: The updated Project object
+        """
+        self.assert_is_instance()
+        with self._api as api:
+            return Project(self._api, api.put(f"/api/v1/projects/{self['id']}", self)['data'], self)
+
+    def create(self, project_name, version_name, project_id=None, description="", active=True,
+               committed=False, issue_template_id='Prioritized-HighRisk-Project-Template',
+               template=DefaultVersionTemplate) -> Version:
+        """
+
+        :param project_name:
+        :param version_name:
+        :param project_id:
+        :param description:
+        :param active:
+        :param committed:
+        :param issue_template_id:
+        :param template:
+        :return: Returns the Version object
+        :rtype: fortifyapi.Version
+        """
+        with self._api as api:
+            r = api.post(f"/api/v1/projectVersions", {
+                'name': version_name,
+                'description': description,
+                'active': active,
+                'committed': committed,
+                'project': {
+                    'id': project_id,  # if this is None it will create the project
+                    'name': project_name,
+                    'description': description,
+                    'issueTemplateId': issue_template_id
+                },
+                'issueTemplateId': issue_template_id
+            })
+            v = Version(self._api, r['data'], self)
+            v.initialize(template=template)
+            return v
+
+    def upsert(self, project_name, version_name, description="", active=True,
+               committed=False, issue_template_id='Prioritized-HighRisk-Project-Template',
+               template=DefaultVersionTemplate) -> Version:
+        """ same as create but uses existing project and version"""
+        # see if the project exists
+        q = Query().query("name", project_name)
+        projects = list(self.list(q=q))
+        if len(projects) == 0:
+            return self.create(project_name, version_name, description=description, active=active, committed=committed,
+                               issue_template_id=issue_template_id, template=template)
+        else:
+            # should be the first one
+            project = projects[0]
+            # but check if the version is there...
+            for v in project.versions.list():
+                print(f"name {v['name']}")
+                if v['name'] == version_name:
+                    print('found it')
+                    print(v)
+                    return v
+            return self.create(project_name, version_name, project_id=project['id'], description=description, active=active,
+                               committed=committed, issue_template_id=issue_template_id, template=template)
+
+    def delete(self):
+        # delete every version and project will delete
+        self.assert_is_instance()
+        for v in self.versions.list():
+            v.delete()
+
+
 class Engine(SSCObject):
     pass
+
+
+class CloudPool(SSCObject):
+
+    def list(self, **kwargs):
+        with self._api as api:
+            for e in api.page_data(f"/api/v1/cloudpools", **kwargs):
+                yield CloudPool(self._api, e, self.parent)
+
+    def create(self, pool_name):
+        with self._api as api:
+            r = api.post(f"/api/v1/cloudpools", {
+                "name": pool_name
+            })
+            return CloudPool(self._api, r['data'])
+
+    def assign(self, worker_uuids):
+        self.assert_is_instance()
+        if not isinstance(worker_uuids, list):
+            worker_uuids = [worker_uuids]
+        with self._api as api:
+            r = api.post(f"/api/v1/cloudpools/{self['uuid']}/workers/action/assign", {
+                "workerUuids": worker_uuids
+            })
+            #TODO: figure out what this returns
+
+    def jobs(self):
+        self.assert_is_instance()
+        with self._api as api:
+            for e in api.page_data(f"/api/v1/cloudpools/{self['uuid']}/jobs"):
+                yield CloudJob(self._api, e, self)
 
 
 class CloudJob(SSCObject):
@@ -205,9 +265,9 @@ class CloudJob(SSCObject):
             for e in api.page_data(f"/api/v1/cloudjobs", **kwargs):
                 yield CloudJob(self._api, e, self.parent)
 
-    def get(self, jobToken):
+    def get(self, job_token):
         with self._api as api:
-            return CloudJob(self._api, api.get(f"/api/v1/cloudjobs/{jobToken}"), self.parent)['data']
+            return CloudJob(self._api, api.get(f"/api/v1/cloudjobs/{job_token}"), self.parent)['data']
 
     def cancel(self):
         with self._api as api:

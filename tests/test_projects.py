@@ -38,9 +38,6 @@ class TestProjects(TestCase):
         print(r)
         self.assertEqual(projects[0], r)
 
-        r = client.Project().get(projects[0]['id'])
-        self.assertEqual(projects[0], r)
-
     def test_project_update(self):
         client = FortifySSCClient(self.c.url, self.c.token)
         project = list(client.projects.list())[0]

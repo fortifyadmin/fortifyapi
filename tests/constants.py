@@ -19,7 +19,7 @@ class Constants(object):
         try:
             if yaml:
                 with open(self.CONF_FILE, 'r') as f:
-                    self._settings = yaml.load(f)
+                    self._settings = yaml.load(f, Loader=yaml.FullLoader)
             else:
                 self._settings = {}
         except:

@@ -202,3 +202,36 @@ class DefaultVersionTemplate:
             }
         ])
 
+
+class CloneVersionTemplate(DefaultVersionTemplate):
+
+    def __init__(self, api, project_version_id, previous_version_id):
+        super().__init__(api, project_version_id)
+        self.previous_version_id = previous_version_id
+
+    def copy_from_partial(self):
+        return self.api.construct_request('POST', f"/api/v1/projectVersions/projectVersions/{self.project_version_id}/action", [
+            {
+                "type": "COPY_FROM_PARTIAL",
+                "values": {
+                    "projectVersionId": self.project_version_id,
+                    "previousProjectVersionId": self.previous_version_id,
+                    "copyAnalysisProcessingRules": True,
+                    "copyBugTrackerConfiguration": True,
+                    "copyCurrentStateFpr": True,
+                    "copyCustomTags": True
+                }
+            }
+        ])
+
+    def copy_project_version_state(self):
+        return self.api.construct_request('POST', f"/api/v1/projectVersions/{self.project_version_id}/action", [
+            {
+                "type": "COPY_CURRENT_STATE",
+                "values": {
+                    "projectVersionId": self.project_version_id,
+                    "previousProjectVersionId": -1,
+                    "copyCurrentStateFpr": False
+                }
+            }
+        ])

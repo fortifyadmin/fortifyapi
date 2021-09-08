@@ -16,3 +16,7 @@ class EmptyException(Exception):
 
 class ResourceNotFound(Exception):
     pass
+
+
+class NotAnInstanceException(Exception):
+    pass
