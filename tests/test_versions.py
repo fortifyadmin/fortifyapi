@@ -60,3 +60,8 @@ class TestVersions(TestCase):
         self.assertGreater(len(attributes), 0)
         print(attributes[0])
         self.assertIsNotNone(attributes[0]['attributeDefinitionId'])
+
+    def test_all_version_list(self):
+        client = FortifySSCClient(self.c.url, self.c.token)
+        all_versions = list(client.list_all_project_versions())
+        self.assertGreater(len(all_versions), 10)

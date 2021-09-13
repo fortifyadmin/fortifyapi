@@ -1,6 +1,7 @@
 import requests
 from typing import Union, Tuple, Any
 from .exceptions import *
+from . import __version__
 
 
 class FortifySSCAPI:
@@ -156,16 +157,15 @@ class FortifySSCAPI:
         return self._request('delete', endpoint, params=data)
 
     def _request(self, method: str, endpoint: str, **kwargs):
-        headers = dict(Authorization=f"FortifyToken {self._token}", Accept='application/json')
+        headers = {
+            "Authorization": f"FortifyToken {self._token}",
+            "Accept": 'application/json',
+            "User-Agent": f"fortifyapi {__version__}"
+        }
         r = requests.request(method, f"{self.url}/{endpoint.lstrip('/')}", headers=headers, **kwargs)
         if 200 <= r.status_code >= 299:
             if r.status_code == 409:
                 raise ResourceNotFound(f"ResponseException - {r.status_code} - {r.text}")
             raise ResponseException(f"ResponseException - {r.status_code} - {r.text}")
         data = r.json()
-        #if '_href' in data:
-        #    del data['_href']
-        # some things include link data... why just some? get rid of it all.
-        #if 'links' in data:
-        #    del data['links']
         return data

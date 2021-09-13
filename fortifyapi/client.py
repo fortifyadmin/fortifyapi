@@ -31,6 +31,11 @@ class FortifySSCClient:
         for e in self._list('/api/v1/engineTypes', **kwargs):
             yield Engine(self._api, e, self)
 
+    def list_all_project_versions(self, **kwargs):
+        kwargs['limit'] = -1
+        for e in self._list('/api/v1/projectVersions', **kwargs):
+            yield Version(self._api, e, None)
+
     @property
     def api(self):
         return self._api
@@ -66,8 +71,9 @@ class Version(SSCObject):
         :return:
         """
         with self._api as api:
-            temp = template(api, self['id'])
-            return api.bulk_request(temp.generate())
+            if not isinstance(template, DefaultVersionTemplate):
+                template = template()
+            return api.bulk_request(template.generate(api=api, project_version_id=self['id']))
 
     def create(self, version_name, description="", active=True, committed=False, template=DefaultVersionTemplate):
         """ Creates a version for the CURRENT project """
@@ -78,11 +84,12 @@ class Version(SSCObject):
 
     def copy(self, new_name: str, new_description: str = ""):
         """
-        Copy a project version including findings and finding state.
+        Copy THIS project version including findings and finding state.
         Useful for some operations, e.g. pull requests
         """
+        self.assert_is_instance()
         return self.create(new_name, new_description, active=self['active'], committed=self['committed'],
-                           template=CloneVersionTemplate)
+                           template=CloneVersionTemplate(self['id']))
 
     def list(self, **kwargs):
         if not self.parent:
@@ -161,7 +168,7 @@ class Project(SSCObject):
 
     def create(self, project_name, version_name, project_id=None, description="", active=True,
                committed=False, issue_template_id='Prioritized-HighRisk-Project-Template',
-               template=DefaultVersionTemplate) -> Version:
+               template=DefaultVersionTemplate):
         """
 
         :param project_name:
@@ -229,6 +236,10 @@ class Engine(SSCObject):
 
 class CloudPool(SSCObject):
 
+    def get(self, uuid):
+        with self._api as api:
+            return CloudPool(self._api, api.get(f"/api/v1/cloudpools/{uuid}")['data'], self.parent)
+
     def list(self, **kwargs):
         with self._api as api:
             for e in api.page_data(f"/api/v1/cloudpools", **kwargs):
@@ -240,6 +251,11 @@ class CloudPool(SSCObject):
                 "name": pool_name
             })
             return CloudPool(self._api, r['data'])
+
+    def delete(self):
+        self.assert_is_instance()
+        with self._api as api:
+            return api.delete(f"/api/v1/cloudpools/{self['uuid']}")
 
     def assign(self, worker_uuids):
         self.assert_is_instance()
@@ -258,12 +274,26 @@ class CloudPool(SSCObject):
                 yield CloudJob(self._api, e, self)
 
 
+class CloudWorker(SSCObject):
+
+    def list_unassigned(self, **kwargs):
+        with self._api as api:
+            for e in api.page_data(f"/api/v1/cloudpools/disabledWorkers", **kwargs):
+                yield CloudWorker(self._api, e, self.parent)
+
+
 class CloudJob(SSCObject):
 
     def list(self, **kwargs):
         with self._api as api:
             for e in api.page_data(f"/api/v1/cloudjobs", **kwargs):
                 yield CloudJob(self._api, e, self.parent)
+
+    def list_all(self, **kwargs):
+        """ Helper function to just disable paging and get them all """
+        kwargs['limit'] = -1
+        for e in self.list(**kwargs):
+            yield e
 
     def get(self, job_token):
         with self._api as api:
@@ -293,6 +323,12 @@ class Artifact(SSCObject):
 
     def purge(self):
         f"/api/v1/artifacts/action/purge" # POST
+        
+    def list_scans(self):
+        with self._api as api:
+            for e in api.page_data(f"/api/v1/artifacts/{self['id']}/scans", **kwargs):
+                yield Scan(self._api, e, self)
+
 
 
 class Issue(SSCObject):
@@ -363,5 +399,50 @@ class Report(SSCObject):
             return api.delete(f"/api/v1/reports/{self['id']}")
 
 
+class FileToken(SSCObject):
+
+    def create(self, purpose='DOWNLOAD'):
+        """
+        :param purpose: valid values are `DOWNLOAD` and `UPLOAD`
+        """
+        assert purpose in ['UPLOAD', 'DOWNLOAD'], "Unsupported purpose"
+
+        with self._api as api:
+            return FileToken(self._api, api.post(f"/api/v1/fileTokens"), self.parent)
+
+    def delete(self):
+        assert False, "Have not tested this"
+        with self._api as api:
+            return api.delete(f"/api/v1/fileTokens", self['id'])
 
 
+class Token(SSCObject):
+
+    def list(self, **kwargs):
+        f"/api/v1/tokens" # GET
+
+    def create(self, **kwargs):
+        f"/api/v1/tokens"  # POST
+
+    def update(self):
+        f"/api/v1/tokens/{self['id']}"  # PUT
+
+    def delete(self):
+        f"/api/v1/tokens/{self['id']}"  # DELETE
+
+    def revoke(self):
+        f"/api/v1/tokens/revoke"  # POST with body
+
+
+class Rulepack(SSCObject):
+
+    def list(self, **kwargs):
+        with self._api as api:
+            for e in api.page_data(f"/api/v1/coreRulepacks", **kwargs):
+                yield Rulepack(self._api, e, self.parent)
+
+    def upload(self):
+        f"/api/v1/coreRulepacks" # POST
+
+    def delete(self):
+        f"/api/v1/coreRulepacks/{self['id']}"  # DELETE

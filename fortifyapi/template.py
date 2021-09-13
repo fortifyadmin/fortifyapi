@@ -1,10 +1,9 @@
 class DefaultVersionTemplate:
 
-    def __init__(self, api, project_version_id):
+    def generate(self, api, project_version_id):
         self.api = api
         self.project_version_id = project_version_id
 
-    def generate(self):
         return [
             self.attributes(),
             self.responsibilities(),
@@ -205,9 +204,8 @@ class DefaultVersionTemplate:
 
 class CloneVersionTemplate(DefaultVersionTemplate):
 
-    def __init__(self, api, project_version_id, previous_version_id):
-        super().__init__(api, project_version_id)
-        self.previous_version_id = previous_version_id
+    def __init__(self, previous_version_id):
+        self.project_version_id = previous_version_id
 
     def copy_from_partial(self):
         return self.api.construct_request('POST', f"/api/v1/projectVersions/projectVersions/{self.project_version_id}/action", [
@@ -230,7 +228,7 @@ class CloneVersionTemplate(DefaultVersionTemplate):
                 "type": "COPY_CURRENT_STATE",
                 "values": {
                     "projectVersionId": self.project_version_id,
-                    "previousProjectVersionId": -1,
+                    "previousProjectVersionId": self.previous_version_id,
                     "copyCurrentStateFpr": False
                 }
             }

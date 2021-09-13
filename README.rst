@@ -9,15 +9,13 @@ Fortify API
 
 Fortify API is a Python RESTFul API client module for Fortify's `Software Security Center <https://www.microfocus.com/en-us/products/software-security-assurance-sdlc/overview/>`_
 
-Currently tested fortify version: 20.2.0.298
-
 Quick Start
 ~~~~~~~~~~~
 
 Several quick start options are available:
 
+- Build locally: ``pip install wheel setuptools && python setup.py build`` 
 - Install with pip (recommended): ``pip install fortifyapi``
-- Build locally: ``pip install wheel setuptools && python setup.py build``
 - `Download the latest release <https://pypi.org/project/fortifyapi/>`__.
 
 Example
@@ -25,29 +23,41 @@ Example
 
 .. code:: python
 
-    import os
-    from fortifyapi import FortifySSCClient
-
-    ssc_url = "https://fortifyssc.prodsec.dev/ssc"
-
-    # make the client with a token
-    client = FortifySSCClient(ssc_url, os.environ['TOKEN'])
-
-    # or make a client using user/pass auth (not recommended for automation tasks)
-    client = FortifySSCClient(ssc_url, (os.environ['USER'], os.environ['PASSW']))
-
-
-    # List ID, Project/application Version
-    for project in client.projects.list():
-        for version in project.versions.list():
-            print(f"Found version {version['name']} in project {project['name']}")
-
-    # Or query for all versions named 'default'
-    for version in project.versions.list(q=Query().query('name', 'default')):
-        print(f"Found version {version['name']} in project {project['name']}")
-        # and get the issue summary
-        summary = version.issue_summary()
-
+   from os import environ
+   from locale import LC_ALL, setlocale
+   from fortifyapi.fortify import FortifyApi
+    
+   # Set encoding
+   environ["PYTHONIOENCODING"] = "utf-8"
+   myLocale = setlocale(category=LC_ALL, locale="en_GB.UTF-8")
+    
+   # Set vars for connection
+   url = 'https://some-fortify-host/ssc'
+   user = 'Fortify SSC User'
+   password = 'Fortify SSC Password'
+   description = 'fortifyapi test client'
+    
+   # Authenticate and retrieve token
+   def token():
+       api = FortifyApi(host=url, username=user, password=password, verify_ssl=False)
+       response = api.get_token(description=description)
+       return response.data['data']['token']
+    
+   # Re-use token in all requests
+   def api():
+       api = FortifyApi(host=url, token=token(), verify_ssl=False)
+       return api
+    
+   # List ID, Project/application Version
+   def list():
+       response = api().get_all_project_versions()
+       data = response.data['data']
+       for version in data:
+           print("{0:8} {1:30} {2:30}".format(version['id'], version['project']['name'], version['name']).encode(
+               'utf-8', errors='ignore').decode())
+    
+   if __name__ == '__main__':
+        list()
 
 Bugs and Feature Requests
 ~~~~~~~~~~~~~~~~~~~~~~~~~
