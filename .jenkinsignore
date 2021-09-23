@@ -1,0 +1,4 @@
+.bumpversion.cfg
+fortifyapi/__init__.py
+.jenkinsignore
+Jenkinsfile
