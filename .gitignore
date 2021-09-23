@@ -73,5 +73,4 @@ target/
 .idea
 
 # FortifyAPI Dev
-webbreaker/fortifyapi
 settings-test.yaml
