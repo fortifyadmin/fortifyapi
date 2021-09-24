@@ -33,6 +33,7 @@ setup(
     version=version,
     description='Python library for Fortify Software Security Center (SSC) RESTFul API',
     long_description=readme,
+    long_description_content_type = "text/x-rst",
     author='Brandon Spruth, Matthew Gill',
     author_email='brandon@spruth.co, mgill@c0ffee.me',
     url='https://github.com/fortifyadmin/fortifyapi',
