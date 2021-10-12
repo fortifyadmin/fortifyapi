@@ -15,7 +15,7 @@ jobs:
       - run:
           command: |
             python --version
-  publish:
+ publish:
     executor: python/default
     steps:
       - checkout
