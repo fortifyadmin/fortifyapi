@@ -10,11 +10,17 @@ jobs:
           pkg-manager: pip
       - python/install-packages:
           args: pytest
-          pkg-manager: pip
+          pkg-manager: pip pipenv
           pypi-cache: false
       - run:
           command: |
-            pytest --version
+            python --version
+  publish:
+    executor: python/default
+    steps:
+      - checkout
+      - python/dist
+      - run: pip install twine && twine upload
 orbs:
   python: circleci/python@1.2.0
 version: 2.1
@@ -22,3 +28,4 @@ workflows:
   main:
     jobs:
       - build
+      - publish
