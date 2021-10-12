@@ -19,6 +19,9 @@ jobs:
     executor: python/default
     steps:
       - checkout
+      - python/install-packages:
+          pip-dependency-file: requirements.txt
+          pkg-manager: pip      
       - python/dist
       - run: pip install twine && twine upload
 orbs:
