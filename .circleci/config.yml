@@ -33,7 +33,7 @@ workflows:
   main:
     jobs:
       - build
-      - pypi:
+      - publish:
           requires:
             - build
           filters:
