@@ -23,7 +23,7 @@ jobs:
       - python/dist
       - run:
           command: |
-            sh scripts/circleci-pypi.sh
+            sh scripts/circleci-pypi-publish.sh
 
 orbs:
   python: circleci/python@1.2.0

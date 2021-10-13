@@ -1,10 +1,9 @@
 .. image:: https://img.shields.io/pypi/v/fortifyapi.svg
    :target: https://pypi.org/project/fortifyapi
 .. image:: https://img.shields.io/pypi/pyversions/fortifyapi.svg
-.. image:: https://circleci.com/gh/fortifyadmin/fortifyapi.svg
-   :target: https://circleci.com/fortifyadmin/fortifyapi
-  
- 
+.. image:: https://img.shields.io/circleci/build/github/fortifyadmin/fortifyapi?task=build
+   :target: https://img.shields.io/circleci/build/github/fortifyadmin/fortifyapi
+
 Fortify API
 ***********
 
