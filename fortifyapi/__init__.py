@@ -1,7 +1,7 @@
 __version__ = '3.0.0'
 
-from .client import *
-from .api import *
-from .query import Query
+from fortifyapi.client import *
+from fortifyapi.api import *
+from fortifyapi.query import Query
 
 __all__ = ['FortifySSCAPI', 'FortifySSCClient', 'Query', 'fortify', '__version__']
