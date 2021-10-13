@@ -23,7 +23,7 @@ jobs:
       - python/dist
       - run: pip install --upgrade && pip install twine && twine upload
         name: Upload package
-        command: scripts/circleci-pypi.sh
+        command: scripts/circleci-pypi-publish.sh
 
 orbs:
   python: circleci/python@1.2.0
