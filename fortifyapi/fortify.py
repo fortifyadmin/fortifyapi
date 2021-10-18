@@ -651,6 +651,17 @@ class FortifyApi(object):
         url = '/api/v1/issueDetails/' + str(issue_id)
         return self._request('GET', url)
 
+    def get_project_version_source_file(self, version_id, path):
+        """
+        Returns an object with information on a source file from a specific project version.
+        It includes the file content.
+        :param version_id: application version id
+        :param path: the relative path of the file from the project root folder
+        :return: details on a source file
+        """
+        url = f'/api/v1/projectVersions/{version_id}/sourceFiles?q=path:"{path}"'
+        return self._request("GET", url)
+
     def get_cloud_pool_list(self):
         """
         Get listing of all cloud pools
