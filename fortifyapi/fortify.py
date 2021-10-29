@@ -465,7 +465,14 @@ class FortifyApi(object):
         url = "/api/v1/projectVersions?limit=0&q=name:\"" + version_name + "\""
         return self._request('GET', url)
     
-    #TODO: deprecate
+    def set_projects_test(self):
+	"""
+	:return: A response object of found for true or false
+	"""
+
+        url = "/api/v1/projects/action/test
+        return self._request('POST', url, json=data)
+
     def get_projects(self):
         """
         :return: A response object with data containing projects
