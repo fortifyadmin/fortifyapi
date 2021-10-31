@@ -450,9 +450,10 @@ class FortifyApi(object):
         url = "/api/v1/projectVersions/" + version_id
         return self._request('GET', url)
     
-    #TODO: deprecate
     def get_project_versions(self, project_name):
         """
+	Implemented on SSC as project-version-controller to manage application versions.
+        A variety of associated resources are accessible via links.
         :return: A response object with data containing project versions
         """
         url = "/api/v1/projectVersions?limit=0&q=project.name:\"" + project_name + "\""
@@ -465,10 +466,14 @@ class FortifyApi(object):
         url = "/api/v1/projectVersions?limit=0&q=name:\"" + version_name + "\""
         return self._request('GET', url)
     
-    def set_projects_test(self):
+    def set_projects_test(self, application_name):
 	"""
+	Check whether the specified application name is already defined in the system
 	:return: A response object of found for true or false
 	"""
+        data = {
+            "applicationName": application_name
+        }
 
         url = "/api/v1/projects/action/test
         return self._request('POST', url, json=data)
@@ -585,7 +590,7 @@ class FortifyApi(object):
         return self._request('GET', url)
 
     #TODO: fix expire_date to one year out
-    def set_token(self, description, token_type, expire_date="2021-12-29T22:40:11.000+0000"):
+    def set_token(self, description, token_type, expire_date="2028-12-29T22:40:11.000+0000"):
         """
         Create any type of SSC token required
         :param description:
