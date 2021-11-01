@@ -466,13 +466,27 @@ class FortifyApi(object):
         url = "/api/v1/projectVersions?limit=0&q=name:\"" + version_name + "\""
         return self._request('GET', url)
     
-    def set_projects_test(self, application_name):
+    def set_project_versions_test(self, project_name, project_version_name):
+        """
+        Check whether the specified application name is already defined in the system
+        :return: A response object of found for true or false
+        """
+        data = {
+            "projectName": project_name
+            "projectVersionName": project_version_name
+        }
+
+        url = "/api/v1/projectVersions/action/test
+        return self._request('POST', url, json=data)
+
+
+    def set_projects_test(self, project_name):
 	"""
 	Check whether the specified application name is already defined in the system
 	:return: A response object of found for true or false
 	"""
         data = {
-            "applicationName": application_name
+            "projectName": project_name
         }
 
         url = "/api/v1/projects/action/test
