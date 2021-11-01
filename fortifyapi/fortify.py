@@ -12,7 +12,6 @@ import ntpath
 import requests
 import requests.auth
 import requests.exceptions
-import requests.packages.urllib3
 from . import __version__ as version
 
 
@@ -452,7 +451,7 @@ class FortifyApi(object):
     
     def get_project_versions(self, project_name):
         """
-	Implemented on SSC as project-version-controller to manage application versions.
+        Implemented on SSC as project-version-controller to manage application versions.
         A variety of associated resources are accessible via links.
         :return: A response object with data containing project versions
         """
@@ -463,34 +462,45 @@ class FortifyApi(object):
         """
         :return: A response object with data containing just a project's version
         """
-        url = "/api/v1/projectVersions?limit=0&q=name:\"" + version_name + "\""
+        url = "/api/v1/projectVersions?q=name:\"" + version_name + "\""
         return self._request('GET', url)
     
     def set_project_versions_test(self, project_name, project_version_name):
         """
         Check whether the specified application name is already defined in the system
+        :param project_name: Application or Project name in SSC you want to test the value of.
+        :param project_version_name: Application or Project version you want to test the value of.
         :return: A response object of found for true or false
         """
         data = {
-            "projectName": project_name
+            "projectName": project_name,
             "projectVersionName": project_version_name
         }
 
-        url = "/api/v1/projectVersions/action/test
+        url = "/api/v1/projectVersions/action/test"
         return self._request('POST', url, json=data)
 
-
-    def set_projects_test(self, project_name):
-	"""
-	Check whether the specified application name is already defined in the system
-	:return: A response object of found for true or false
-	"""
+    def set_projects_test(self, application_name):
+        """
+        Check whether the specified application name is already defined in the system.  For some reason SSC is not
+        consistent here on naming conventions between project and application.
+        :param application_name: Application or Project name in SSC you want to test the value of.
+        :return: A response object of found for true or false
+        """
         data = {
-            "projectName": project_name
+            "applicationName": application_name
         }
 
-        url = "/api/v1/projects/action/test
+        url = "/api/v1/projects/action/test"
         return self._request('POST', url, json=data)
+
+    def get_projects_id_from_name(self, project_name):
+        """
+        :return: the data object from querying by a Project or Application name
+        """
+
+        url = "/api/v1/projects?q=name:" + project_name
+        return self._request('GET', url)
 
     def get_projects(self):
         """
@@ -498,6 +508,7 @@ class FortifyApi(object):
         """
 
         url = "/api/v1/projects?start=0&limit=-1"
+
         return self._request('GET', url)
 
     def get_token(self, description, type='UnifiedLoginToken'):
