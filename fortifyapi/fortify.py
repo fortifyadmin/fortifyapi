@@ -12,6 +12,7 @@ import ntpath
 import requests
 import requests.auth
 import requests.exceptions
+import urllib.parse
 from . import __version__ as version
 
 
@@ -496,10 +497,11 @@ class FortifyApi(object):
 
     def get_projects_id_from_name(self, project_name):
         """
+        Don't want to trust user input here.  Encoding for spaces with + sign and other encoding
         :return: the data object from querying by a Project or Application name
         """
 
-        url = "/api/v1/projects?q=name:" + project_name
+        url = "/api/v1/projects?q=name:" + urllib.parse.quote_plus(project_name)
         return self._request('GET', url)
 
     def get_projects(self):
@@ -755,10 +757,8 @@ class FortifyApi(object):
         Add LDAP user to Fortify SSC
         :return:
         """
-        data = { "distinguishedName": distinguished_name,
-                 "roles": [{
-                 "permissionIds": [ str(project_version_id)]
-                 }]
+        data = {"distinguishedName": distinguished_name,
+                "roles": [{"permissionIds": [str(project_version_id)]}]
                }
         url = '/api/v1/ldapObjects'
         return self._request('POST', url, json=data)
