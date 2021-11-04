@@ -497,10 +497,11 @@ class FortifyApi(object):
 
     def get_projects_id_from_name(self, project_name):
         """
+        Don't want to trust user input here.  Encoding for spaces with + sign and other encoding
         :return: the data object from querying by a Project or Application name
         """
 
-        url = "/api/v1/projects?q=name:" + urllib.parse.urlencode(project_name)
+        url = "/api/v1/projects?q=name:" + urllib.parse.quote_plus(project_name)
         return self._request('GET', url)
 
     def get_projects(self):
