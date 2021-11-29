@@ -87,7 +87,7 @@ class FortifySSCAPI:
         :param data: the postData
         """
         return {
-            'uri': f"{self.url}/{path}",
+            'uri': f"{self.url}/{path.lstrip('/')}",
             'httpVerb': method,
             'postData': data
         }
@@ -168,4 +168,5 @@ class FortifySSCAPI:
                 raise ResourceNotFound(f"ResponseException - {r.status_code} - {r.text}")
             raise ResponseException(f"ResponseException - {r.status_code} - {r.text}")
         data = r.json()
+        #print(f"{method} {endpoint}\n\t{r.text}")
         return data

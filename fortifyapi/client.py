@@ -1,4 +1,5 @@
-from typing import Union, Tuple, Generator
+from typing import Union, Tuple
+import time
 
 from .exceptions import *
 from .template import *
@@ -44,6 +45,7 @@ class FortifySSCClient:
 class SSCObject(dict):
     def __init__(self, api, obj=None, parent=None):
         super().__init__(obj if obj else {})
+        assert isinstance(api, FortifySSCAPI), 'Wrong parameter type, api should be FortifySSCAPI'
         self._api = api
         self.parent = parent
 
@@ -63,6 +65,8 @@ class Version(SSCObject):
     def __init__(self, api, obj, parent):
         super().__init__(api, obj, parent)
         self.attributes = Attribute(api, obj, self)
+        self.issues = Issue(api, obj, self)
+        self.custom_tags = CustomTag(api, obj, self)
 
     def initialize(self, template=DefaultVersionTemplate):
         """
@@ -73,11 +77,13 @@ class Version(SSCObject):
         with self._api as api:
             if not isinstance(template, DefaultVersionTemplate):
                 template = template()
-            return api.bulk_request(template.generate(api=api, project_version_id=self['id']))
+            data = template.generate(api=api, project_version_id=self['id'])
+            return api.bulk_request(data)
 
     def create(self, version_name, description="", active=True, committed=False, template=DefaultVersionTemplate):
         """ Creates a version for the CURRENT project """
         self.assert_is_instance("Cannot create version for empty project - consider using `create_project_version`")
+        assert self.parent['name'] is not None, "how is the parent name None?"
         return self.parent.create(self.parent['name'], version_name, description=description, active=active,
                            committed=committed, project_id=self.parent['id'],
                            issue_template_id=self.parent['issueTemplateId'], template=template)
@@ -96,7 +102,8 @@ class Version(SSCObject):
             raise ParentNotFoundException("No project parent found to query versions from")
         with self._api as api:
             for e in api.page_data(f"/api/v1/projects/{self.parent['id']}/versions", **kwargs):
-                yield Version(self._api, e, self.parent)
+                p = Project(self._api, e['project'], None) if 'project' in e else self.parent
+                yield Version(self._api, e, p)
 
     def get(self, id):
         with self._api as api:
@@ -124,6 +131,28 @@ class Version(SSCObject):
             return api.get(f"/api/v1/projectVersions/{self['id']}/issueSummaries",
                            seriestype=series_type,
                            groupaxistype=group_axis_type)['data']
+
+    def list_artifacts(self, **kwargs):
+        self.assert_is_instance()
+        with self._api as api:
+            for e in api.page_data(f"/api/v1/projectVersions/{self['id']}/artifacts", **kwargs):
+                yield Artifact(self._api, e, self)
+
+    def upload_artifact(self, file_path, process_block=False):
+        """
+        :param process_block: Block this method for Artifact processing
+        """
+        self.assert_is_instance()
+        with self._api as api:
+            with open(file_path, 'rb') as f:
+                robj = api._request('POST', f"/api/v1/projectVersions/{self['id']}/artifacts", files={'file': f})
+                art = Artifact(self._api, robj['data'], self)
+                if process_block:
+                    while a := art.get(art['id']):
+                        if a['status'] in ['PROCESS_COMPLETE', 'ERROR_PROCESSING', 'REQUIRE_AUTH']:
+                            return a
+                        time.sleep(1)
+                return art
 
 
 class Project(SSCObject):
@@ -196,15 +225,21 @@ class Project(SSCObject):
                 },
                 'issueTemplateId': issue_template_id
             })
-            v = Version(self._api, r['data'], self)
+            p = Project(self._api, r['data']['project'], None) if 'project' in r['data'] else self
+
+            v = Version(self._api, r['data'], p)
             v.initialize(template=template)
-            return v
+            # get it again so we see it's true state
+            # but we should really just re-get the Project so it has all the proper data
+            p = Project(self._api, {}, None).get(p['id'])
+            return p.versions.get(v['id'])
 
     def upsert(self, project_name, version_name, description="", active=True,
                committed=False, issue_template_id='Prioritized-HighRisk-Project-Template',
                template=DefaultVersionTemplate) -> Version:
         """ same as create but uses existing project and version"""
         # see if the project exists
+        # TODO: change this to /projectVersions/action/test with {projectName:x, projectVersionName: y}
         q = Query().query("name", project_name)
         projects = list(self.list(q=q))
         if len(projects) == 0:
@@ -215,10 +250,7 @@ class Project(SSCObject):
             project = projects[0]
             # but check if the version is there...
             for v in project.versions.list():
-                print(f"name {v['name']}")
                 if v['name'] == version_name:
-                    print('found it')
-                    print(v)
                     return v
             return self.create(project_name, version_name, project_id=project['id'], description=description, active=active,
                                committed=committed, issue_template_id=issue_template_id, template=template)
@@ -297,7 +329,7 @@ class CloudJob(SSCObject):
 
     def get(self, job_token):
         with self._api as api:
-            return CloudJob(self._api, api.get(f"/api/v1/cloudjobs/{job_token}"), self.parent)['data']
+            return CloudJob(self._api, api.get(f"/api/v1/cloudjobs/{job_token}")['data'], self.parent)
 
     def cancel(self):
         with self._api as api:
@@ -313,7 +345,8 @@ class Scan(SSCObject):
 class Artifact(SSCObject):
 
     def get(self, id):
-        f"/api/v1/artifacts/{id}" # GET
+        with self._api as api:
+            return Artifact(self._api, api.get(f"/api/v1/artifacts/{id}")['data'], self.parent)
 
     def delete(self, id):
         f"/api/v1/artifacts/{id}" # DELETE
@@ -330,9 +363,84 @@ class Artifact(SSCObject):
                 yield Scan(self._api, e, self)
 
 
-
 class Issue(SSCObject):
-    pass
+    NOT_AN_ISSUE = 0
+    RELIABILITY_ISSUE = 1
+    BAD_PRACTICE = 2
+    SUSPICIOUS = 3
+    EXPLOITABLE = 4
+
+    def list(self, **kwargs):
+        with self._api as api:
+            for e in api.page_data(f"/api/v1/projectVersions/{self.parent['id']}/issues", **kwargs):
+                yield Issue(self._api, e, self.parent)
+
+    def get(self, id):
+        with self._api as api:
+            return Issue(self._api, api.get(f"/api/v1/projectVersions/{self.parent['id']}/issues/{id}")['data'], self.parent)
+
+    def assign(self, user):
+        """
+        :param user: user id?
+        """
+        self.assert_is_instance()
+        o = dict(user=user)
+        f"/api/v1/projectVersions/{self.parent['id']}/issues/action/assignUser"
+
+    def audit(self,  analysis, comment="via automation", user=None, suppressed=False, tags=None):
+        """
+        :param analysis: zero to four
+        :param comment: Issue comment
+        :param user: Username to assign, else None
+        :param suppressed: Will suppress the issue
+        :param tags: ?
+        """
+        self.assert_is_instance()
+        assert analysis in [
+            Issue.NOT_AN_ISSUE,
+            Issue.RELIABILITY_ISSUE,
+            Issue.BAD_PRACTICE,
+            Issue.SUSPICIOUS,
+            Issue.EXPLOITABLE
+        ], "Not a valid analysis type"
+        o = {
+            'issues': [{
+                'id': self['id'],
+                'revision': self['revision']
+            }],
+            'comment': comment,
+            'suppressed': suppressed,
+            'customTagAudit': [{
+                'customTagGuid': '87f2364f-dcd4-49e6-861d-f8d3f351686b',
+                'newCustomTagIndex': analysis
+            }]
+        }
+        if user:
+            o['user'] = user
+        if tags:
+            if isinstance(tags, list):
+                for t in tags:
+                    o['customTagAudit'].append(t)
+            else:
+                o['customTagAudit'].append(tags)
+
+        with self._api as api:
+            return api.post(f"/api/v1/projectVersions/{self.parent['id']}/issues/action/audit", o)
+
+    def suppress(self, suppressed=True):
+        self.assert_is_instance()
+        o = {
+            'issues': [{
+                'id': self['id'],
+                'revision': self['revision']
+            }],
+            "suppressed": suppressed
+        }
+        with self._api as api:
+            return api.post(f"/api/v1/projectVersions/{self.parent['id']}/issues/action/suppress", o)
+
+    def unsuppress(self):
+        self.suppress(False)
 
 
 class Attachment(SSCObject):
@@ -446,3 +554,18 @@ class Rulepack(SSCObject):
 
     def delete(self):
         f"/api/v1/coreRulepacks/{self['id']}"  # DELETE
+
+
+class CustomTag(SSCObject):
+    """ Specifically for project versions """
+
+    def list(self, **kwargs):
+        with self._api as api:
+            for e in api.page_data(f"/api/v1/projectVersions/{self.parent['id']}/customTags", **kwargs):
+                yield CustomTag(self._api, e, self.parent)
+
+    def create(self, **kwargs):
+        f"/api/v1/projectVersions/{self.parent['id']}/customTags"
+
+    def update(self):
+        f"/api/v1/projectVersions/{self.parent['id']}/customTags/{self['id']}"

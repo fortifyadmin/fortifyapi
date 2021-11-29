@@ -2,6 +2,7 @@ from unittest import TestCase
 
 from constants import Constants
 from random import randint
+from pprint import pprint
 
 from fortifyapi.exceptions import *
 from fortifyapi import FortifySSCClient, Query
@@ -60,7 +61,13 @@ class TestProjects(TestCase):
         client = FortifySSCClient(self.c.url, self.c.token)
         version = client.projects.upsert("Unit Test Python", 'upsert')
         self.assertIsNotNone(version)
-        version.delete()
+        #pprint(version)
+        try:
+            self.assertTrue(version['active'])
+            # is it committed?
+            self.assertTrue(version['committed'])
+        finally:
+            version.delete()
 
     def test_project_query(self):
         client = FortifySSCClient(self.c.url, self.c.token)

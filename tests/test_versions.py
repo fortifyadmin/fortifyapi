@@ -56,6 +56,7 @@ class TestVersions(TestCase):
         version = list(project.versions.list())[0]
 
         attributes = list(version.attributes.list())
+
         self.assertIsNotNone(attributes)
         self.assertGreater(len(attributes), 0)
         print(attributes[0])
@@ -65,3 +66,19 @@ class TestVersions(TestCase):
         client = FortifySSCClient(self.c.url, self.c.token)
         all_versions = list(client.list_all_project_versions())
         self.assertGreater(len(all_versions), 10)
+
+    def test_version_clone(self):
+        # copy a project version WITH findings and their states preserved
+        client = FortifySSCClient(self.c.url, self.c.token)
+
+        pname = 'Unit Test Python - Clone'
+
+        pv = client.projects.upsert(pname, 'main')
+        self.assertIsNotNone(pv)
+        try:
+            self.assertTrue(pv['committed'])
+            a = pv.upload_artifact('tests/resources/scan_20.1.fpr')
+
+            # now
+        finally:
+            pv.delete()
