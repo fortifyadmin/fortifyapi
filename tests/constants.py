@@ -1,5 +1,6 @@
 import getpass
 import os
+from fortifyapi import FortifySSCAPI
 
 try:
     import yaml
@@ -61,6 +62,7 @@ class Constants(object):
     def token(self):
         if 'token' in self._settings:
             return self._settings['token']
+
         return None
 
     @property
@@ -69,3 +71,12 @@ class Constants(object):
             return self._settings['ssc_url']
         return self._url
 
+    @property
+    def proxies(self):
+        if 'proxies' in self._settings:
+            return self._settings['proxies']
+        return None
+
+    def setup_proxy(self, client):
+        if self.proxies:
+            client._api.proxies = self.proxies

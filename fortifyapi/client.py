@@ -1,4 +1,5 @@
-from typing import Union, Tuple, Generator
+from typing import Union, Tuple
+import time
 
 from .exceptions import *
 from .template import *
@@ -8,19 +9,21 @@ from .api import FortifySSCAPI
 
 class FortifySSCClient:
 
-    def __init__(self, url: str, auth: Union[str, Tuple[str, str]]):
+    def __init__(self, url: str, auth: Union[str, Tuple[str, str]], proxies=None, verify=True):
         """
         :param url: url to ssc, including the path. E.g. `https://fortifyssc/ssc`
         :param auth: Authentication, either a token str or a (username, password) tuple
         """
         self._url = url
         self._auth = auth
-        self._api = FortifySSCAPI(url, auth)
+        self._api = FortifySSCAPI(url, auth, proxies, verify)
 
         self.projects = Project(self._api, None, self)
         self.pools = CloudPool(self._api, None, self)
         self.jobs = CloudJob(self._api, None, self)
         self.reports = Report(self._api, None, self)
+        self.auth_entities = AuthEntity(self._api, None, self)
+        self.ldap_user = LdapUser(self._api, None, self)
 
     def _list(self, endpoint, **kwargs):
         with self._api as api:
@@ -44,6 +47,7 @@ class FortifySSCClient:
 class SSCObject(dict):
     def __init__(self, api, obj=None, parent=None):
         super().__init__(obj if obj else {})
+        assert isinstance(api, FortifySSCAPI), 'Wrong parameter type, api should be FortifySSCAPI'
         self._api = api
         self.parent = parent
 
@@ -63,6 +67,9 @@ class Version(SSCObject):
     def __init__(self, api, obj, parent):
         super().__init__(api, obj, parent)
         self.attributes = Attribute(api, obj, self)
+        self.issues = Issue(api, obj, self)
+        self.custom_tags = CustomTag(api, obj, self)
+        self.artifacts = Artifact(api, obj, self)
 
     def initialize(self, template=DefaultVersionTemplate):
         """
@@ -73,11 +80,13 @@ class Version(SSCObject):
         with self._api as api:
             if not isinstance(template, DefaultVersionTemplate):
                 template = template()
-            return api.bulk_request(template.generate(api=api, project_version_id=self['id']))
+            data = template.generate(api=api, project_version_id=self['id'])
+            return api.bulk_request(data)
 
     def create(self, version_name, description="", active=True, committed=False, template=DefaultVersionTemplate):
         """ Creates a version for the CURRENT project """
         self.assert_is_instance("Cannot create version for empty project - consider using `create_project_version`")
+        assert self.parent['name'] is not None, "how is the parent name None?"
         return self.parent.create(self.parent['name'], version_name, description=description, active=active,
                            committed=committed, project_id=self.parent['id'],
                            issue_template_id=self.parent['issueTemplateId'], template=template)
@@ -96,7 +105,14 @@ class Version(SSCObject):
             raise ParentNotFoundException("No project parent found to query versions from")
         with self._api as api:
             for e in api.page_data(f"/api/v1/projects/{self.parent['id']}/versions", **kwargs):
-                yield Version(self._api, e, self.parent)
+                p = Project(self._api, e['project'], None) if 'project' in e else self.parent
+                yield Version(self._api, e, p)
+
+    def list_auth_entities(self, **kwargs):
+        self.assert_is_instance()
+        with self._api as api:
+            for e in api.page_data(f"/api/v1/projectVersions/{self['id']}/authEntities", **kwargs):
+                yield AuthEntity(self._api, e, self.parent)
 
     def get(self, id):
         with self._api as api:
@@ -124,6 +140,23 @@ class Version(SSCObject):
             return api.get(f"/api/v1/projectVersions/{self['id']}/issueSummaries",
                            seriestype=series_type,
                            groupaxistype=group_axis_type)['data']
+
+
+    def upload_artifact(self, file_path, process_block=False):
+        """
+        :param process_block: Block this method for Artifact processing
+        """
+        self.assert_is_instance()
+        with self._api as api:
+            with open(file_path, 'rb') as f:
+                robj = api._request('POST', f"/api/v1/projectVersions/{self['id']}/artifacts", files={'file': f})
+                art = Artifact(self._api, robj['data'], self)
+                if process_block:
+                    while a := art.get(art['id']):
+                        if a['status'] in ['PROCESS_COMPLETE', 'ERROR_PROCESSING', 'REQUIRE_AUTH']:
+                            return a
+                        time.sleep(1)
+                return art
 
 
 class Project(SSCObject):
@@ -196,15 +229,21 @@ class Project(SSCObject):
                 },
                 'issueTemplateId': issue_template_id
             })
-            v = Version(self._api, r['data'], self)
+            p = Project(self._api, r['data']['project'], None) if 'project' in r['data'] else self
+
+            v = Version(self._api, r['data'], p)
             v.initialize(template=template)
-            return v
+            # get it again so we see it's true state
+            # but we should really just re-get the Project so it has all the proper data
+            p = Project(self._api, {}, None).get(p['id'])
+            return p.versions.get(v['id'])
 
     def upsert(self, project_name, version_name, description="", active=True,
                committed=False, issue_template_id='Prioritized-HighRisk-Project-Template',
                template=DefaultVersionTemplate) -> Version:
         """ same as create but uses existing project and version"""
         # see if the project exists
+        # TODO: change this to /projectVersions/action/test with {projectName:x, projectVersionName: y}
         q = Query().query("name", project_name)
         projects = list(self.list(q=q))
         if len(projects) == 0:
@@ -215,10 +254,7 @@ class Project(SSCObject):
             project = projects[0]
             # but check if the version is there...
             for v in project.versions.list():
-                print(f"name {v['name']}")
                 if v['name'] == version_name:
-                    print('found it')
-                    print(v)
                     return v
             return self.create(project_name, version_name, project_id=project['id'], description=description, active=active,
                                committed=committed, issue_template_id=issue_template_id, template=template)
@@ -297,7 +333,7 @@ class CloudJob(SSCObject):
 
     def get(self, job_token):
         with self._api as api:
-            return CloudJob(self._api, api.get(f"/api/v1/cloudjobs/{job_token}"), self.parent)['data']
+            return CloudJob(self._api, api.get(f"/api/v1/cloudjobs/{job_token}")['data'], self.parent)
 
     def cancel(self):
         with self._api as api:
@@ -309,30 +345,119 @@ class Scan(SSCObject):
     def get(self, id):
         f"/api/v1/scans/{id}" # GET
 
-
-class Artifact(SSCObject):
-
-    def get(self, id):
-        f"/api/v1/artifacts/{id}" # GET
-
-    def delete(self, id):
-        f"/api/v1/artifacts/{id}" # DELETE
-
-    def approve(self):
-        f"/api/v1/artifacts/action/approve" # POST
-
-    def purge(self):
-        f"/api/v1/artifacts/action/purge" # POST
-        
-    def list_scans(self):
+    def list(self):
         with self._api as api:
             for e in api.page_data(f"/api/v1/artifacts/{self['id']}/scans", **kwargs):
                 yield Scan(self._api, e, self)
 
 
+class Artifact(SSCObject):
+
+    def __init__(self, api, obj=None, parent=None):
+        super().__init__(api, obj, parent)
+        self.scans = Scan(api, None, self)
+
+    def get(self, id):
+        with self._api as api:
+            return Artifact(self._api, api.get(f"/api/v1/artifacts/{id}")['data'], self.parent)
+
+    def list(self, **kwargs):
+        self.assert_is_instance()
+        with self._api as api:
+            for e in api.page_data(f"/api/v1/projectVersions/{self['id']}/artifacts", **kwargs):
+                yield Artifact(self._api, e, self)
+
+    def delete(self, id):
+        f"/api/v1/artifacts/{id}" # DELETE
+        raise NotImplementedError()
+
+    def approve(self):
+        f"/api/v1/artifacts/action/approve" # POST
+        raise NotImplementedError()
+
+    def purge(self):
+        f"/api/v1/artifacts/action/purge" # POST
+        raise NotImplementedError()
+
 
 class Issue(SSCObject):
-    pass
+    NOT_AN_ISSUE = 0
+    RELIABILITY_ISSUE = 1
+    BAD_PRACTICE = 2
+    SUSPICIOUS = 3
+    EXPLOITABLE = 4
+
+    def list(self, **kwargs):
+        with self._api as api:
+            for e in api.page_data(f"/api/v1/projectVersions/{self.parent['id']}/issues", **kwargs):
+                yield Issue(self._api, e, self.parent)
+
+    def get(self, id):
+        with self._api as api:
+            return Issue(self._api, api.get(f"/api/v1/projectVersions/{self.parent['id']}/issues/{id}")['data'], self.parent)
+
+    def assign(self, user):
+        """
+        :param user: user id?
+        """
+        self.assert_is_instance()
+        o = dict(user=user)
+        f"/api/v1/projectVersions/{self.parent['id']}/issues/action/assignUser"
+
+    def audit(self,  analysis, comment="via automation", user=None, suppressed=False, tags=None):
+        """
+        :param analysis: zero to four
+        :param comment: Issue comment
+        :param user: Username to assign, else None
+        :param suppressed: Will suppress the issue
+        :param tags: ?
+        """
+        self.assert_is_instance()
+        assert analysis in [
+            Issue.NOT_AN_ISSUE,
+            Issue.RELIABILITY_ISSUE,
+            Issue.BAD_PRACTICE,
+            Issue.SUSPICIOUS,
+            Issue.EXPLOITABLE
+        ], "Not a valid analysis type"
+        o = {
+            'issues': [{
+                'id': self['id'],
+                'revision': self['revision']
+            }],
+            'comment': comment,
+            'suppressed': suppressed,
+            'customTagAudit': [{
+                'customTagGuid': '87f2364f-dcd4-49e6-861d-f8d3f351686b',
+                'newCustomTagIndex': analysis
+            }]
+        }
+        if user:
+            o['user'] = user
+        if tags:
+            if isinstance(tags, list):
+                for t in tags:
+                    o['customTagAudit'].append(t)
+            else:
+                o['customTagAudit'].append(tags)
+
+        with self._api as api:
+            return api.post(f"/api/v1/projectVersions/{self.parent['id']}/issues/action/audit", o)
+
+    def suppress(self, suppressed=True):
+        self.assert_is_instance()
+        o = {
+            'issues': [{
+                'id': self['id'],
+                'revision': self['revision']
+            }],
+            "suppressed": suppressed
+        }
+        with self._api as api:
+            return api.post(f"/api/v1/projectVersions/{self.parent['id']}/issues/action/suppress", o)
+
+    def unsuppress(self):
+        self.suppress(False)
 
 
 class Attachment(SSCObject):
@@ -344,18 +469,23 @@ class Attachment(SSCObject):
 
     def get(self, id):
         f"/api/v1/projectVersions/{self.id}/attributes/{id}" # GET
+        raise NotImplementedError()
 
     def update(self):
         f"/api/v1/projectVersions/{self.parent.id}/attributes/{self.id}" # UPDATE
+        raise NotImplementedError()
 
     def delete(self, id):
         f"/api/v1/projectVersions/{self.parent.id}/attributes/{self.id}" # UPDATE
+        raise NotImplementedError()
 
     def upload(self):
         f"/api/v1/issues/{self.id}/attachments" # POST
+        raise NotImplementedError()
 
     def delete_all(self):
         f"/api/v1/issues/{self.parent.id}/attachments" # DELETE
+        raise NotImplementedError()
 
 
 class Attribute(SSCObject):
@@ -367,15 +497,15 @@ class Attribute(SSCObject):
 
     def get(self, id):
         f"/api/v1/projectVersions/{self['id']}/attributes/{id}" # GET
-        pass
+        raise NotImplementedError()
 
     def create(self):
         f"/api/v1/projectVersions/{self['id']}/attributes" # POST
-        pass
+        raise NotImplementedError()
 
     def update(self):
         f"/api/v1/projectVersions/{self['id']}/attributes" # PUT
-        pass
+        raise NotImplementedError()
 
 
 class Report(SSCObject):
@@ -387,11 +517,11 @@ class Report(SSCObject):
 
     def get(self, id):
         f"/api/v1/reports/{id}"
-        pass
+        raise NotImplementedError()
 
     def create(self):
         f"/api/v1/reports" # POST
-        pass
+        raise NotImplementedError()
 
     def delete(self):
         """ Delete the current report """
@@ -420,18 +550,23 @@ class Token(SSCObject):
 
     def list(self, **kwargs):
         f"/api/v1/tokens" # GET
+        raise NotImplementedError()
 
     def create(self, **kwargs):
         f"/api/v1/tokens"  # POST
+        raise NotImplementedError()
 
     def update(self):
         f"/api/v1/tokens/{self['id']}"  # PUT
+        raise NotImplementedError()
 
     def delete(self):
         f"/api/v1/tokens/{self['id']}"  # DELETE
+        raise NotImplementedError()
 
     def revoke(self):
         f"/api/v1/tokens/revoke"  # POST with body
+        raise NotImplementedError()
 
 
 class Rulepack(SSCObject):
@@ -443,6 +578,100 @@ class Rulepack(SSCObject):
 
     def upload(self):
         f"/api/v1/coreRulepacks" # POST
+        raise NotImplementedError()
 
     def delete(self):
         f"/api/v1/coreRulepacks/{self['id']}"  # DELETE
+        raise NotImplementedError()
+
+
+class CustomTag(SSCObject):
+    """ Specifically for project versions """
+
+    def list(self, **kwargs):
+        with self._api as api:
+            for e in api.page_data(f"/api/v1/projectVersions/{self.parent['id']}/customTags", **kwargs):
+                yield CustomTag(self._api, e, self.parent)
+
+    def create(self, **kwargs):
+        f"/api/v1/projectVersions/{self.parent['id']}/customTags"
+        raise NotImplementedError()
+
+    def update(self):
+        f"/api/v1/projectVersions/{self.parent['id']}/customTags/{self['id']}"
+        raise NotImplementedError()
+
+class Role(SSCObject):
+
+    def list(self, **kwargs):
+        with self._api as api:
+            for e in api.page_data(f"/api/v1/roles", **kwargs):
+                yield Roles(self._api, e, self.parent)
+
+
+class AuthEntity(SSCObject):
+
+    def list(self, **kwargs):
+        with self._api as api:
+            for e in api.page_data(f"/api/v1/authEntities", **kwargs):
+                yield AuthEntity(self._api, e, self.parent)
+
+    def get(self, id):
+        with self._api as api:
+            return api.get(f"/api/v1/authEntities/{id}", **kwargs)['data']
+
+    def find_ldap_user(self, username):
+        with self._api as api:
+            data = api.get(f"/api/v1/authEntities", q="isLdap:true",
+                                                embed='roles(name)', entityName=username, orderby='entityName',
+                                                start=0, limit=-1)['data']
+            if len(data) > 0:
+                return AuthEntity(self._api, data[0], self.parent)
+            return None
+
+    def assign_to_versions(self, versions):
+        """
+        :rtype boolean: Succeess
+        """
+        self.assert_is_instance()
+        if type(versions) is list or type(versions) is tuple:
+            cva = versions
+        else:
+            cva = [versions]
+        with self._api as api:
+            return api.post(f"/api/v1/authEntities/{self['id']}/projectVersions/action", {
+                "type": "assign",
+                "ids": cva
+            })['data']['status'] == 'success'
+
+
+class LocalGroup(SSCObject):
+    pass
+
+
+class User(SSCObject):
+
+    def get(self, username):
+        pass
+
+
+class LocalUser(SSCObject):
+    pass
+
+
+class LdapUser(SSCObject):
+
+    def list(self, ldaptype='USER', **kwargs):
+        kwargs['ldaptype'] = ldaptype
+        with self._api as api:
+            for e in api.page_data(f"/api/v1/ldapObjects", **kwargs):
+                yield LdapUser(self._api, e, self.parent)
+
+    def add(self, roles=None):
+        self.assert_is_instance()
+        if roles:
+            self['roles'] = roles
+        elif 'roles' not in self:
+            self['roles'] = [{'id': 'developer'}]
+        with self._api as api:
+            return LdapUser(self._api, api.post(f"/api/v1/ldapObjects", self)['data'], self)

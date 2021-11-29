@@ -9,7 +9,7 @@ class FortifySSCAPI:
     API object to talk to SSC via REST
     """
 
-    def __init__(self, url: str,  auth: Union[str, Tuple[str, str]]):
+    def __init__(self, url: str,  auth: Union[str, Tuple[str, str]], proxies=None, verify=True):
         """
         :param url: url to ssc, including the path. E.g. `https://fortifyssc/ssc`
         :param auth: Authentication, either a token str or a (username, password) tuple
@@ -18,6 +18,8 @@ class FortifySSCAPI:
         self._token = None
         self.__user = None
         self.__pass = None
+        self.proxies = proxies
+        self.verify = verify
 
         if isinstance(auth, str):
             self._token = auth
@@ -55,9 +57,13 @@ class FortifySSCAPI:
         :returns: The token itself
         """
         assert self.__user and self.__pass, "Cannot use token based authentication to create tokens."
-        r = requests.post(f"{self.url}/api/v1/tokens",
-                          auth=(self.__user, self.__pass),
-                          json=dict(type=type, description=description))
+        kwargs = dict(
+            auth=(self.__user, self.__pass),
+            json=dict(type=type, description=description)
+        )
+        if self.proxies:
+            kwargs['proxies'] = self.proxies
+        r = requests.post(f"{self.url}/api/v1/tokens", **kwargs)
         if r.status_code != 201:
             raise AuthException(f"Failed to authenticate - {r.status_code} - {r.text}")
         # could store user from the response, not sure why though
@@ -72,9 +78,13 @@ class FortifySSCAPI:
         :raises AuthException: If we are unable to revoke the token
         """
         assert self.__user and self.__pass, "Cannot use token based authentication to create tokens."
-        r = requests.post(f"{self.url}/api/v1/tokens/action/revoke",
-                          auth=(self.__user, self.__pass),
-                          json=dict(tokens=[token]))
+        kwargs = dict(
+            auth=(self.__user, self.__pass),
+            json=dict(tokens=[token])
+        )
+        if self.proxies:
+            kwargs['proxies'] = self.proxies
+        r = requests.post(f"{self.url}/api/v1/tokens/action/revoke", **kwargs)
         if r.status_code != 200:
             raise AuthException(f"Failed to revoke token - {r.status_code} - {r.text}")
 
@@ -87,7 +97,7 @@ class FortifySSCAPI:
         :param data: the postData
         """
         return {
-            'uri': f"{self.url}/{path}",
+            'uri': f"{self.url}/{path.lstrip('/')}",
             'httpVerb': method,
             'postData': data
         }
@@ -113,9 +123,7 @@ class FortifySSCAPI:
         count = r['count']
 
         if (data_len + kwargs['start']) < count:
-            print('poop')
             kwargs['start'] = kwargs['start'] + kwargs['limit']
-            print(f"new start {kwargs['start']}")
             for e in self.page_data(endpoint, **kwargs):
                 yield e
 
@@ -162,10 +170,15 @@ class FortifySSCAPI:
             "Accept": 'application/json',
             "User-Agent": f"fortifyapi {__version__}"
         }
+        if self.proxies:
+            kwargs['proxies'] = self.proxies
+        if not self.verify:
+            kwargs['verify'] = self.verify
         r = requests.request(method, f"{self.url}/{endpoint.lstrip('/')}", headers=headers, **kwargs)
         if 200 <= r.status_code >= 299:
             if r.status_code == 409:
                 raise ResourceNotFound(f"ResponseException - {r.status_code} - {r.text}")
             raise ResponseException(f"ResponseException - {r.status_code} - {r.text}")
         data = r.json()
+        #print(f"{method} {endpoint}\n\t{r.text}")
         return data

@@ -12,6 +12,7 @@ class TestVersions(TestCase):
 
     def test_project_version_list(self):
         client = FortifySSCClient(self.c.url, self.c.token)
+        self.c.setup_proxy(client)
 
         for project in client.projects.list():
             self.assertIsNotNone(project)
@@ -30,6 +31,7 @@ class TestVersions(TestCase):
 
     def test_project_version_query(self):
         client = FortifySSCClient(self.c.url, self.c.token)
+        self.c.setup_proxy(client)
         project = list(client.projects.list())[0]
         # for this arbitrary version, let's QUERY using it
         version = list(project.versions.list())[-1]
@@ -42,6 +44,7 @@ class TestVersions(TestCase):
 
     def test_issue_summary(self):
         client = FortifySSCClient(self.c.url, self.c.token)
+        self.c.setup_proxy(client)
         project = list(client.projects.list())[0]
         version = list(project.versions.list())[0]
         summary = version.issue_summary()
@@ -52,10 +55,12 @@ class TestVersions(TestCase):
 
     def test_attributes(self):
         client = FortifySSCClient(self.c.url, self.c.token)
+        self.c.setup_proxy(client)
         project = list(client.projects.list())[0]
         version = list(project.versions.list())[0]
 
         attributes = list(version.attributes.list())
+
         self.assertIsNotNone(attributes)
         self.assertGreater(len(attributes), 0)
         print(attributes[0])
@@ -63,5 +68,23 @@ class TestVersions(TestCase):
 
     def test_all_version_list(self):
         client = FortifySSCClient(self.c.url, self.c.token)
+        self.c.setup_proxy(client)
         all_versions = list(client.list_all_project_versions())
         self.assertGreater(len(all_versions), 10)
+
+    def test_version_clone(self):
+        # copy a project version WITH findings and their states preserved
+        client = FortifySSCClient(self.c.url, self.c.token)
+        self.c.setup_proxy(client)
+
+        pname = 'Unit Test Python - Clone'
+
+        pv = client.projects.upsert(pname, 'main')
+        self.assertIsNotNone(pv)
+        try:
+            self.assertTrue(pv['committed'])
+            a = pv.upload_artifact('tests/resources/scan_20.1.fpr')
+
+            # now
+        finally:
+            pv.delete()

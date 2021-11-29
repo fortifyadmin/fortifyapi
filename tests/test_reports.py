@@ -12,6 +12,7 @@ class TestReports(TestCase):
 
     def test_report_list(self):
         client = FortifySSCClient(self.c.url, self.c.token)
+        self.c.setup_proxy(client)
 
         for report in client.reports.list():
             self.assertIsNotNone(report)

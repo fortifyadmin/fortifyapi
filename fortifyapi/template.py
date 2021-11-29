@@ -8,9 +8,9 @@ class DefaultVersionTemplate:
             self.attributes(),
             self.responsibilities(),
             self.copy_from_partial(),
-            self.commit_project_version(),
             self.copy_project_version_state(),
-            self.configure_processing_rules()
+            self.configure_processing_rules(),
+            self.commit_project_version()
         ]
 
     def attributes(self):
@@ -70,7 +70,7 @@ class DefaultVersionTemplate:
         ])
 
     def copy_from_partial(self):
-        return self.api.construct_request('POST', f"/api/v1/projectVersions/projectVersions/{self.project_version_id}/action", [
+        return self.api.construct_request('POST', f"/api/v1/projectVersions/{self.project_version_id}/action", [
             {
                 "type": "COPY_FROM_PARTIAL",
                 "values": {
@@ -205,10 +205,10 @@ class DefaultVersionTemplate:
 class CloneVersionTemplate(DefaultVersionTemplate):
 
     def __init__(self, previous_version_id):
-        self.project_version_id = previous_version_id
+        self.previous_version_id = previous_version_id
 
     def copy_from_partial(self):
-        return self.api.construct_request('POST', f"/api/v1/projectVersions/projectVersions/{self.project_version_id}/action", [
+        return self.api.construct_request('POST', f"/api/v1/projectVersions/{self.project_version_id}/action", [
             {
                 "type": "COPY_FROM_PARTIAL",
                 "values": {
@@ -216,8 +216,10 @@ class CloneVersionTemplate(DefaultVersionTemplate):
                     "previousProjectVersionId": self.previous_version_id,
                     "copyAnalysisProcessingRules": True,
                     "copyBugTrackerConfiguration": True,
-                    "copyCurrentStateFpr": True,
-                    "copyCustomTags": True
+                    #"copyCurrentStateFpr": True, # didn't see this in 21.1?
+                    "copyCustomTags": True,
+                    "copyUserAccessSettings": True,
+                    "copyVersionAttributes": True
                 }
             }
         ])
@@ -228,8 +230,7 @@ class CloneVersionTemplate(DefaultVersionTemplate):
                 "type": "COPY_CURRENT_STATE",
                 "values": {
                     "projectVersionId": self.project_version_id,
-                    "previousProjectVersionId": self.previous_version_id,
-                    "copyCurrentStateFpr": False
+                    "previousProjectVersionId": self.previous_version_id
                 }
             }
         ])

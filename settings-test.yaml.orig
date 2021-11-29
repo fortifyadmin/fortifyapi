@@ -6,4 +6,7 @@ username: admin
 password: changeme!
 # auth token
 token: xyz
-
+# proxy
+#proxies:
+#  http: http://127.0.0.1:9000
+#  https: http://127.0.0.1:9000
