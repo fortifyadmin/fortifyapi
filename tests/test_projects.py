@@ -15,6 +15,7 @@ class TestProjects(TestCase):
 
     def test_project_list(self):
         client = FortifySSCClient(self.c.url, self.c.token)
+        self.c.setup_proxy(client)
 
         projects = list(client.projects.list())
         self.assertGreater(len(projects), 0)
@@ -26,6 +27,7 @@ class TestProjects(TestCase):
 
     def test_test(self):
         client = FortifySSCClient(self.c.url, self.c.token)
+        self.c.setup_proxy(client)
         projects = list(client.projects.list())
         print(projects[0])
 
@@ -34,6 +36,7 @@ class TestProjects(TestCase):
 
     def test_project_get(self):
         client = FortifySSCClient(self.c.url, self.c.token)
+        self.c.setup_proxy(client)
         projects = list(client.projects.list())
         r = client.projects.get(projects[0]['id'])
         print(r)
@@ -41,6 +44,7 @@ class TestProjects(TestCase):
 
     def test_project_update(self):
         client = FortifySSCClient(self.c.url, self.c.token)
+        self.c.setup_proxy(client)
         project = list(client.projects.list())[0]
         print(project)
         old_description = project['description']
@@ -59,6 +63,7 @@ class TestProjects(TestCase):
 
     def test_project_upsert(self):
         client = FortifySSCClient(self.c.url, self.c.token)
+        self.c.setup_proxy(client)
         version = client.projects.upsert("Unit Test Python", 'upsert')
         self.assertIsNotNone(version)
         #pprint(version)
@@ -71,6 +76,7 @@ class TestProjects(TestCase):
 
     def test_project_query(self):
         client = FortifySSCClient(self.c.url, self.c.token)
+        self.c.setup_proxy(client)
         return #TODO: put back in
 
         client.projects.upsert("Unit Test Python", 'default')
@@ -87,6 +93,7 @@ class TestProjects(TestCase):
         This is a complex test case that uses a lot of other features.
         '''
         client = FortifySSCClient(self.c.url, self.c.token)
+        self.c.setup_proxy(client)
 
         client.projects.upsert("Unit Test Python", 'default')
 

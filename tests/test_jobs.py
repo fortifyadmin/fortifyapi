@@ -12,6 +12,7 @@ class TestJobs(TestCase):
 
     def test_job_list(self):
         client = FortifySSCClient(self.c.url, self.c.token)
+        self.c.setup_proxy(client)
         jobs = list(client.jobs.list())
         self.assertIsNotNone(jobs)
         self.assertNotEqual(len(jobs), 0)
@@ -29,6 +30,7 @@ class TestJobs(TestCase):
     def test_job_cancel(self):
         return # one off test - TODO: actually write this
         client = FortifySSCClient(self.c.url, self.c.token)
+        self.c.setup_proxy(client)
         jobs = list(client.jobs.list())
         self.assertIsNotNone(jobs)
         self.assertNotEqual(len(jobs), 0)

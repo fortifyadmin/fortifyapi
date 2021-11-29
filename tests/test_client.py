@@ -16,6 +16,7 @@ class TestClient(TestCase):
 
     def test_engine_types(self):
         client = FortifySSCClient(self.c.url, self.c.token)
+        self.c.setup_proxy(client)
 
         res = list(client.list_engine_types())
         print(res)
@@ -25,6 +26,7 @@ class TestClient(TestCase):
 
     def test_create(self):
         client = FortifySSCClient(self.c.url, self.c.token)
+        self.c.setup_proxy(client)
         project = Project(client.api)
         self.assertIsNotNone(project)
         self.assertFalse('id' in project)
@@ -38,6 +40,7 @@ class TestClient(TestCase):
 
     def test_ssc_object(self):
         client = FortifySSCClient(self.c.url, self.c.token)
+        self.c.setup_proxy(client)
         project = Project(client.api)
         self.assertEqual(str(project), "<class 'fortifyapi.client.Project'>({})")
         project.foo = False

@@ -12,19 +12,20 @@ class TestArtifacts(TestCase):
 
     def test_version_artifact(self):
         client = FortifySSCClient(self.c.url, self.c.token)
+        self.c.setup_proxy(client)
         pname = 'Unit Test Python - Artifact'
 
         pv = client.projects.upsert(pname, 'default')
         self.assertIsNotNone(pv)
         self.assertTrue(pv['committed'])
 
-        artifacts = list(pv.list_artifacts())
+        artifacts = list(pv.artifacts.list())
         self.assertEqual(0, len(artifacts), 'We actually had artifacts?')
 
         a = pv.upload_artifact('tests/resources/scan_20.1.fpr')
         self.assertIsNotNone(a)
 
-        artifacts = list(pv.list_artifacts())
+        artifacts = list(pv.artifacts.list())
         self.assertEqual(1, len(artifacts))
 
         a = artifacts[0]

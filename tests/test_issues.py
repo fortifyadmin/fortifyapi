@@ -1,4 +1,4 @@
-from unittest import TestCasi don't kne
+from unittest import TestCase
 from pprint import pprint
 
 from constants import Constants
@@ -12,6 +12,7 @@ class TestIssues(TestCase):
 
     def test_issue(self):
         client = FortifySSCClient(self.c.url, self.c.token)
+        self.c.setup_proxy(client)
         pname = 'Unit Test Python - issue'
 
         pv = client.projects.upsert(pname, 'default')

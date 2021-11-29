@@ -12,6 +12,7 @@ class TestPools(TestCase):
 
     def test_pool_list_get(self):
         client = FortifySSCClient(self.c.url, self.c.token)
+        self.c.setup_proxy(client)
         pools = list(client.pools.list())
         self.assertIsNotNone(pools)
         self.assertNotEqual(len(pools), 0)
@@ -37,6 +38,7 @@ class TestPools(TestCase):
     def test_pool_create_delete(self):
         pool_name = 'unit_test_pool_zz'
         client = FortifySSCClient(self.c.url, self.c.token)
+        self.c.setup_proxy(client)
         # assert that the pool doesn't already exist
         pools = list(client.pools.list(q=Query().query('name', pool_name)))
         self.assertIsNotNone(pools)
@@ -58,6 +60,7 @@ class TestPools(TestCase):
 
     def test_list_jobs(self):
         client = FortifySSCClient(self.c.url, self.c.token)
+        self.c.setup_proxy(client)
         pools = list(client.pools.list())
         self.assertIsNotNone(pools)
         self.assertNotEqual(len(pools), 0)

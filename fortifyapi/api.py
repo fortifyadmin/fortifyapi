@@ -57,9 +57,13 @@ class FortifySSCAPI:
         :returns: The token itself
         """
         assert self.__user and self.__pass, "Cannot use token based authentication to create tokens."
-        r = requests.post(f"{self.url}/api/v1/tokens",
-                          auth=(self.__user, self.__pass),
-                          json=dict(type=type, description=description))
+        kwargs = dict(
+            auth=(self.__user, self.__pass),
+            json=dict(type=type, description=description)
+        )
+        if self.proxies:
+            kwargs['proxies'] = self.proxies
+        r = requests.post(f"{self.url}/api/v1/tokens", **kwargs)
         if r.status_code != 201:
             raise AuthException(f"Failed to authenticate - {r.status_code} - {r.text}")
         # could store user from the response, not sure why though
@@ -74,9 +78,13 @@ class FortifySSCAPI:
         :raises AuthException: If we are unable to revoke the token
         """
         assert self.__user and self.__pass, "Cannot use token based authentication to create tokens."
-        r = requests.post(f"{self.url}/api/v1/tokens/action/revoke",
-                          auth=(self.__user, self.__pass),
-                          json=dict(tokens=[token]))
+        kwargs = dict(
+            auth=(self.__user, self.__pass),
+            json=dict(tokens=[token])
+        )
+        if self.proxies:
+            kwargs['proxies'] = self.proxies
+        r = requests.post(f"{self.url}/api/v1/tokens/action/revoke", **kwargs)
         if r.status_code != 200:
             raise AuthException(f"Failed to revoke token - {r.status_code} - {r.text}")
 
