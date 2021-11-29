@@ -9,7 +9,7 @@ class FortifySSCAPI:
     API object to talk to SSC via REST
     """
 
-    def __init__(self, url: str,  auth: Union[str, Tuple[str, str]]):
+    def __init__(self, url: str,  auth: Union[str, Tuple[str, str]], proxies=None, verify=True):
         """
         :param url: url to ssc, including the path. E.g. `https://fortifyssc/ssc`
         :param auth: Authentication, either a token str or a (username, password) tuple
@@ -18,6 +18,8 @@ class FortifySSCAPI:
         self._token = None
         self.__user = None
         self.__pass = None
+        self.proxies = proxies
+        self.verify = verify
 
         if isinstance(auth, str):
             self._token = auth
@@ -113,9 +115,7 @@ class FortifySSCAPI:
         count = r['count']
 
         if (data_len + kwargs['start']) < count:
-            print('poop')
             kwargs['start'] = kwargs['start'] + kwargs['limit']
-            print(f"new start {kwargs['start']}")
             for e in self.page_data(endpoint, **kwargs):
                 yield e
 
@@ -162,6 +162,10 @@ class FortifySSCAPI:
             "Accept": 'application/json',
             "User-Agent": f"fortifyapi {__version__}"
         }
+        if self.proxies:
+            kwargs['proxies'] = self.proxies
+        if not self.verify:
+            kwargs['verify'] = self.verify
         r = requests.request(method, f"{self.url}/{endpoint.lstrip('/')}", headers=headers, **kwargs)
         if 200 <= r.status_code >= 299:
             if r.status_code == 409:

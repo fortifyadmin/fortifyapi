@@ -8,19 +8,21 @@ from .api import FortifySSCAPI
 
 class FortifySSCClient:
 
-    def __init__(self, url: str, auth: Union[str, Tuple[str, str]]):
+    def __init__(self, url: str, auth: Union[str, Tuple[str, str]], proxies=None, verify=True):
         """
         :param url: url to ssc, including the path. E.g. `https://fortifyssc/ssc`
         :param auth: Authentication, either a token str or a (username, password) tuple
         """
         self._url = url
         self._auth = auth
-        self._api = FortifySSCAPI(url, auth)
+        self._api = FortifySSCAPI(url, auth, proxies, verify)
 
         self.projects = Project(self._api, None, self)
         self.pools = CloudPool(self._api, None, self)
         self.jobs = CloudJob(self._api, None, self)
         self.reports = Report(self._api, None, self)
+        self.auth_entities = AuthEntity(self._api, None, self)
+        self.ldap_user = LdapUser(self._api, None, self)
 
     def _list(self, endpoint, **kwargs):
         with self._api as api:
@@ -97,6 +99,12 @@ class Version(SSCObject):
         with self._api as api:
             for e in api.page_data(f"/api/v1/projects/{self.parent['id']}/versions", **kwargs):
                 yield Version(self._api, e, self.parent)
+
+    def list_auth_entities(self, **kwargs):
+        self.assert_is_instance()
+        with self._api as api:
+            for e in api.page_data(f"/api/v1/projectVersions/{self['id']}/authEntities", **kwargs):
+                yield AuthEntity(self._api, e, self.parent)
 
     def get(self, id):
         with self._api as api:
@@ -446,3 +454,79 @@ class Rulepack(SSCObject):
 
     def delete(self):
         f"/api/v1/coreRulepacks/{self['id']}"  # DELETE
+
+
+class Role(SSCObject):
+
+    def list(self, **kwargs):
+        with self._api as api:
+            for e in api.page_data(f"/api/v1/roles", **kwargs):
+                yield Roles(self._api, e, self.parent)
+
+
+class AuthEntity(SSCObject):
+
+    def list(self, **kwargs):
+        with self._api as api:
+            for e in api.page_data(f"/api/v1/authEntities", **kwargs):
+                yield AuthEntity(self._api, e, self.parent)
+
+    def get(self, id):
+        with self._api as api:
+            return api.get(f"/api/v1/authEntities/{id}", **kwargs)['data']
+
+    def find_ldap_user(self, username):
+        with self._api as api:
+            data = api.get(f"/api/v1/authEntities", q="isLdap:true",
+                                                embed='roles(name)', entityName=username, orderby='entityName',
+                                                start=0, limit=-1)['data']
+            if len(data) > 0:
+                return AuthEntity(self._api, data[0], self.parent)
+            return None
+
+    def assign_to_versions(self, versions):
+        """
+        :rtype boolean: Succeess
+        """
+        self.assert_is_instance()
+        if type(versions) is list or type(versions) is tuple:
+            cva = versions
+        else:
+            cva = [versions]
+        with self._api as api:
+            return api.post(f"/api/v1/authEntities/{self['id']}/projectVersions/action", {
+                "type": "assign",
+                "ids": cva
+            })['data']['status'] == 'success'
+
+
+class LocalGroup(SSCObject):
+    pass
+
+
+class User(SSCObject):
+
+    def get(self, username):
+        pass
+
+
+class LocalUser(SSCObject):
+    pass
+
+
+class LdapUser(SSCObject):
+
+    def list(self, ldaptype='USER', **kwargs):
+        kwargs['ldaptype'] = ldaptype
+        with self._api as api:
+            for e in api.page_data(f"/api/v1/ldapObjects", **kwargs):
+                yield LdapUser(self._api, e, self.parent)
+
+    def add(self, roles=None):
+        self.assert_is_instance()
+        if roles:
+            self['roles'] = roles
+        elif 'roles' not in self:
+            self['roles'] = [{'id': 'developer'}]
+        with self._api as api:
+            return LdapUser(self._api, api.post(f"/api/v1/ldapObjects", self)['data'], self)
