@@ -1,0 +1,37 @@
+from unittest import TestCase
+from pprint import pprint
+
+from constants import Constants
+
+from fortifyapi.exceptions import *
+from fortifyapi import FortifySSCClient, Query
+
+
+class TestArtifacts(TestCase):
+    c = Constants()
+
+    def test_version_artifact(self):
+        client = FortifySSCClient(self.c.url, self.c.token)
+        pname = 'Unit Test Python - Artifact'
+
+        pv = client.projects.upsert(pname, 'default')
+        self.assertIsNotNone(pv)
+        self.assertTrue(pv['committed'])
+
+        artifacts = list(pv.list_artifacts())
+        self.assertEqual(0, len(artifacts), 'We actually had artifacts?')
+
+        a = pv.upload_artifact('tests/resources/scan_20.1.fpr')
+        self.assertIsNotNone(a)
+
+        artifacts = list(pv.list_artifacts())
+        self.assertEqual(1, len(artifacts))
+
+        a = artifacts[0]
+        pprint(a)
+
+        # clean up
+        pv = list(client.projects.list(q=Query().query('name', pname)))
+        for e in pv:
+            e.delete()
+
