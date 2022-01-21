@@ -135,7 +135,7 @@ def delete_user():
             " (" + user_id_response.data['data'][count_users]['firstName'] + " " 
             + user_id_response.data['data'][count_users]['lastName'] +")" ) 
             count_users+=1
-        print("Please retry and enter the unique Deloitte ID or email.")
+        print("Please retry and enter the unique email.")
         main()
     else:
         print("Error. Please ensure the credentials are correct.")
@@ -143,7 +143,7 @@ def delete_user():
    
 #Adds LDAP user
 def adds_ldap_user():
-    #Prompts user for Deloitte ID and desired role
+    #Prompts user for ID and desired role
     query = input("Enter the username or email (Ex: asrey): ")
     role_list = api().get_roles_list()
     role_data = role_list.data['data']
@@ -157,7 +157,7 @@ def adds_ldap_user():
     for names in role_data:
         print(str(role_count) + ". " + names['name'])
         role_count += 1
-    newRole = input("Enter the new role (Ex: MF Developer): ")
+    newRole = input("Enter the new role (Ex: Developer): ")
     
     if(newRole == 'quit'):
         print("Returning to the main menu...")
@@ -196,7 +196,7 @@ def adds_ldap_user():
             " (" + user_data_response.data['data'][count]['firstName'] + " " 
             + user_data_response.data['data'][count]['lastName'] +")" ) 
             count+=1
-        print("Please retry and enter the unique Deloitte ID or email.")
+        print("Please retry and enter the unique ID or email.")
         main()
         
     else:
@@ -257,8 +257,7 @@ def update_ldap_version():
             idx = 0
             project_names_list = response.data['data']
              
-            #print(response.data_json(pretty = True))
-            #print(project_names_list)
+    
             print("Current Versions:")
             for names in project_names_list:
                 print(response.data['data'][idx]['project']['name'] + " - " + response.data['data'][idx]['name'])
@@ -276,10 +275,10 @@ def update_ldap_version():
                 " (" + user_data_response.data['data'][count]['firstName'] + " " 
                 + user_data_response.data['data'][count]['lastName'] +")" ) 
                 count+=1
-            print("Please retry and enter the unique Deloitte ID or email.")
+            print("Please retry and enter the unique ID or email.")
             
         else:
-            print("An error occurred, the user could not be found. Please retry with the correct Deloitte credentials")
+            print("An error occurred, the user could not be found. Please retry with the correct credentials")
           
     
     while True:
@@ -381,9 +380,7 @@ def update_ldap_version_again(name):
             response = api().get_ldap_user_versions(userId)
             idx = 0
             project_names_list = response.data['data']
-             
-            #print(response.data_json(pretty = True))
-            #print(project_names_list)
+ 
             print("Current Versions:")
             for names in project_names_list:
                 print(response.data['data'][idx]['project']['name'] + " - " + response.data['data'][idx]['name'])
@@ -404,10 +401,10 @@ def update_ldap_version_again(name):
                 " (" + user_data_response.data['data'][count]['firstName'] + " " 
                 + user_data_response.data['data'][count]['lastName'] +")" ) 
                 count+=1
-            print("Please retry and enter the unique Deloitte ID or email.")
+            print("Please retry and enter the unique ID or email.")
             
         else:
-            print("An error occurred, the user could not be found. Please retry with the correct Deloitte credentials")    
+            print("An error occurred, the user could not be found. Please retry with the correct credentials")    
             main()
         
             
@@ -557,7 +554,7 @@ def update_ldap_user_role():
             " (" + user_data_response.data['data'][count]['firstName'] + " " 
             + user_data_response.data['data'][count]['lastName'] +")" ) 
             count+=1
-        print("Please retry and enter the unique Deloitte ID or email.")
+        print("Please retry and enter the unique ID or email.")
         main()
         
     else:
@@ -595,60 +592,10 @@ def get_project_versions():
     response = api().get_all_project_versions()
     print(response.data_json(pretty = True))
 
-def create_ldap_user():
-    response = api().set_ldap_user("CN=Mitchell\\, Alex [alemitchell],OU=Users,OU=Adelaide,OU=SA,OU=State,OU=Production,DC=au,DC=deloitte,DC=com", "")
-    print(response.data_json(pretty = True))
-
-def write_json(new_data, filename='data.json'):
-    with open(filename,'r+') as file:
-          # First we load existing data into a dict.
-        file_data = json.load(file)
-        # Join new_data with file_data inside emp_details
-        # Sets file's current position at offset.
-        file.seek(0)
-        # convert back to json.
-        json.dump(file_data, file, indent = 4)
- 
-    # python object to be appended
-y = { "requests": [
-        {
-            "uri": "https://vigilantshieldazure.deloittecyber.net/ssc/api/v1/ldapObjects",
-            "httpVerb": "POST",
-            "postData": {
-			"distinguishedName": "CN=Daraz\\, Robert [rdaraz],OU=Users,OU=DTCE,DC=atrema,DC=deloitte,DC=com",
-  "email": "rdaraz@deloittece.com",
-  "firstName": "Robert",      
-  "assignedToNonUsers": False,
-  "lastName": "Daraz",
-  "ldapType": "USER",
-  "name": "rdaraz",
-  "roles": [
-    {
-      "allApplicationRole": False,
-      "builtIn": False,
-      "default": True,
-      "deletable": True,
-      "description": "string",
-      "id": "5997343b-7e81-4048-bd05-8fa0ed545a46",
-      "name": "string",
-      "objectVersion": 8,
-      "permissionIds": [
-        "string"
-      ],
-      "publishVersion": 1,
-      "userOnly": False
-    }
-  ]
-  }
-  }
-  ]
-    }
      
-        #write_json(y) 
-  
 def add_multiple_users():
     
-    user_input = list(map(str, input("Enter multiple Deloitte users separated by spaces (Ex: asrey abacon abhinmishra): ").split()))
+    user_input = list(map(str, input("Enter multiple users separated by spaces (Ex: asrey abacon abhinmishra): ").split()))
     if(len(user_input) == 0):
         print("Empty string detected. Please try again.")
         main()
@@ -656,24 +603,12 @@ def add_multiple_users():
     for users in user_input:
         user_data_response = api().get_unregistered_user(user_input[user_idx])
         user_idx += 1
-        #print(user_data_response.data_json(pretty = True))
         if(user_data_response.data['count'] == 0):
-            print("One or more of the Deloitte ID's is incorrect. Please retry and ensure that each credential is correct.")
+            print("One or more of the ID's is incorrect. Please retry and ensure that each credential is correct.")
             main()
         elif(user_data_response.data['count'] > 1):
-            print("One or more of the Deloitte ID's was not unique. Please retry.")
+            print("One or more of the ID's was not unique. Please retry.")
             main()
-        #elif(user_data_response.data['count'] == 1):
-            #distinguishedName = user_data_response.data['data'][0]['distinguishedName']
-            #userId = user_data_response.data['data'][0]['id']
-            #email = user_data_response.data['data'][0]['email']
-            #firstName = user_data_response.data['data'][0]['firstName']
-            #lastName = user_data_response.data['data'][0]['lastName']
-            #ldapType = user_data_response.data['data'][0]['ldapType']
-            #name = user_data_response.data['data'][0]['name']
-        #else:
-            #print("A unique match for each Deloitte ID that does not already exists could not be found. Please retry.")
-            #main()
         
     role_input = []
     role_list = api().get_roles_list()
@@ -695,8 +630,7 @@ def add_multiple_users():
             #Finds and prints the versions associated with the application
             #for names in multiple_project_response:
             select_dict.update({count: role_list.data['data'][idx]['name']})
-            #print(select_dict)
-            #print(str(count) + ". " + role_list.data['data'][idx]['name'])
+         
             count+=1
             idx+=1
          #break
@@ -708,8 +642,7 @@ def add_multiple_users():
             elif(role_choice == 'quit'):
                 print("Returning to main menu...")
                 main()
-            #elif(role_choice not in select_dict):
-                #print("Invalid choice. Please try again.")    
+            
             else:
                 try:
                     role_choice = int(role_choice)
@@ -720,9 +653,6 @@ def add_multiple_users():
                 #print(role_input)
                 break
             
-    #print ("Original key list is : " + str(user_input))
-    #print ("Original value list is : " + str(role_input))
-  
 # using zip()
 # to convert lists to dictionary
     res_dict = dict(zip(user_input, role_input))
@@ -743,20 +673,19 @@ def add_multiple_users():
         if(user_data_response.data['count'] == 1):
     #Stores all the necessary variables for the updated json object
                 distinguishedName = user_data_response.data['data'][0]['distinguishedName']
-                #print(distinguishedName)
+       
                 userId = user_data_response.data['data'][0]['id']
-                #print(userId)
+             
                 email = user_data_response.data['data'][0]['email']
-                #print(email)
+            
                 firstName = user_data_response.data['data'][0]['firstName']
-                #print(firstName)
+               
                 lastName = user_data_response.data['data'][0]['lastName']
-                #print(lastName)
+          
                 ldapType = user_data_response.data['data'][0]['ldapType']
-                #print(ldapType)
+
                 name = user_data_response.data['data'][0]['name']
-                #print(name)
-        
+   
                 print("User found: " + name + " " + "(" + firstName + ", " + lastName + ")")
                
                 user_idx += 1
@@ -771,27 +700,24 @@ def add_multiple_users():
                 " (" + user_data_response.data['data'][count]['firstName'] + " " 
                 + user_data_response.data['data'][count]['lastName'] +")" ) 
                 count+=1
-            print("Please retry and enter the unique Deloitte ID or email.")
+            print("Please retry and enter the unique ID or email.")
             
         else:
-            print("An error occurred, the user could not be found. Please retry with the correct Deloitte credentials")
+            print("An error occurred, the user could not be found. Please retry with the correct credentials")
             
         for role_name in role_data:
-            #print(role_name['name'])
-            #print(res_dict.get(names))
+
             if(role_name['name'] == res_dict.get(names)):
                 role_id = role_name['id']
-                #print(role_id)
+
                 rolename = role_name['name']
-                #print(rolename)
+
                 role_description = role_name['description']
-                #print(role_description)
+
                 break        
         final_response = api().add_ldap_user(distinguishedName, email, firstName, lastName, 
     ldapType, name, role_description, role_id, rolename)
-       
-        #print(final_response)
-       
+     
         print("Success! " + name + " has been added to the LDAP user database.")
     
     print("Please ensure the users have been added on SSC.")
@@ -843,10 +769,10 @@ def get_ldap_user_project_versions():
                 " (" + user_data_response.data['data'][count]['firstName'] + " " 
                 + user_data_response.data['data'][count]['lastName'] +")" ) 
                 count+=1
-            print("Please retry and enter the unique Deloitte ID or email.")
+            print("Please retry and enter the unique ID or email.")
             
         else:
-            print("An error occurred, the user could not be found. Please retry with the correct Deloitte credentials")
+            print("An error occurred, the user could not be found. Please retry with the correct credentials")
                  
     main()
 
