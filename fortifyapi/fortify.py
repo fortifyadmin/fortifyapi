@@ -12,13 +12,13 @@ import ntpath
 import requests
 import requests.auth
 import requests.exceptions
-import requests.packages.urllib3
+import urllib.parse
 from . import __version__ as version
 
 
 class FortifyApi(object):
     def __init__(self, host, username=None, password=None, token=None, verify_ssl=True, timeout=60, user_agent=None,
-                 client_version='20.10'):
+                 client_version='21.10'):
 
         self.host = host
         self.username = username
@@ -360,14 +360,14 @@ class FortifyApi(object):
         """
         :return: A response object containing all attribute definitions
         """
-        url = '/api/v1/attributeDefinitions?start=-1&limit=-1'
+        url = '/api/v1/attributeDefinitions?start=0&limit=-1'
         return self._request('GET', url)
 
     def get_cloudscan_jobs(self):
         """
         :return: A response object containing all cloudscan jobs
         """
-        url = '/api/v1/cloudjobs?start=-1&limit=-1'
+        url = '/api/v1/cloudjobs?start=0&limit=-1'
         return self._request('GET', url)
 
     def get_cloudscan_job_status(self, scan_id):
@@ -424,7 +424,7 @@ class FortifyApi(object):
         :param parent_id: parent resource identifier
         :return: A response object containing project version artifacts
         """
-        url = "/api/v1/projectVersions/" + str(parent_id) + "/artifacts?start=-1&limit=-1"
+        url = "/api/v1/projectVersions/" + str(parent_id) + "/artifacts?start=0&limit=-1"
         return self._request('GET', url)
 
     def get_project_version_attributes(self, project_version_id):
@@ -432,14 +432,14 @@ class FortifyApi(object):
         :param project_version_id: Project version id
         :return: A response object containing the project version attributes
         """
-        url = '/api/v1/projectVersions/' + str(project_version_id) + '/attributes/?start=-1&limit=-1'
+        url = '/api/v1/projectVersions/' + str(project_version_id) + '/attributes/?start=0&limit=-1'
         return self._request('GET', url)
 
     def get_all_project_versions(self):
         """
         :return: A response object with data containing project versions
         """
-        url = "/api/v1/projectVersions?start=-1&limit=-1"
+        url = "/api/v1/projectVersions?start=0&limit=-1"
         return self._request('GET', url)
 
     def get_project_version(self, version_id):
@@ -450,9 +450,10 @@ class FortifyApi(object):
         url = "/api/v1/projectVersions/" + version_id
         return self._request('GET', url)
     
-    #TODO: deprecate
     def get_project_versions(self, project_name):
         """
+        Implemented on SSC as project-version-controller to manage application versions.
+        A variety of associated resources are accessible via links.
         :return: A response object with data containing project versions
         """
         url = "/api/v1/projectVersions?limit=0&q=project.name:\"" + project_name + "\""
@@ -462,16 +463,54 @@ class FortifyApi(object):
         """
         :return: A response object with data containing just a project's version
         """
-        url = "/api/v1/projectVersions?limit=0&q=name:\"" + version_name + "\""
+        url = "/api/v1/projectVersions?q=name:\"" + version_name + "\""
         return self._request('GET', url)
     
-    #TODO: deprecate
+    def set_project_versions_test(self, project_name, project_version_name):
+        """
+        Check whether the specified application name is already defined in the system
+        :param project_name: Application or Project name in SSC you want to test the value of.
+        :param project_version_name: Application or Project version you want to test the value of.
+        :return: A response object of found for true or false
+        """
+        data = {
+            "projectName": project_name,
+            "projectVersionName": project_version_name
+        }
+
+        url = "/api/v1/projectVersions/action/test"
+        return self._request('POST', url, json=data)
+
+    def set_projects_test(self, application_name):
+        """
+        Check whether the specified application name is already defined in the system.  For some reason SSC is not
+        consistent here on naming conventions between project and application.
+        :param application_name: Application or Project name in SSC you want to test the value of.
+        :return: A response object of found for true or false
+        """
+        data = {
+            "applicationName": application_name
+        }
+
+        url = "/api/v1/projects/action/test"
+        return self._request('POST', url, json=data)
+
+    def get_projects_id_from_name(self, project_name):
+        """
+        Don't want to trust user input here.  Encoding for spaces with + sign and other encoding
+        :return: the data object from querying by a Project or Application name
+        """
+
+        url = "/api/v1/projects?q=name:" + urllib.parse.quote_plus(project_name)
+        return self._request('GET', url)
+
     def get_projects(self):
         """
         :return: A response object with data containing projects
         """
 
-        url = "/api/v1/projects?start=-1&limit=-1"
+        url = "/api/v1/projects?start=0&limit=-1"
+
         return self._request('GET', url)
 
     def get_token(self, description, type='UnifiedLoginToken'):
@@ -574,11 +613,11 @@ class FortifyApi(object):
         Get all tokens for all users
         :return:
         """
-        url = "/api/v1/tokens?start=0&limit=200"
+        url = "/api/v1/tokens?start=0&limit=-1"
         return self._request('GET', url)
 
     #TODO: fix expire_date to one year out
-    def set_token(self, description, token_type, expire_date="2021-12-29T22:40:11.000+0000"):
+    def set_token(self, description, token_type, expire_date="2028-12-29T22:40:11.000+0000"):
         """
         Create any type of SSC token required
         :param description:
@@ -651,6 +690,17 @@ class FortifyApi(object):
         url = '/api/v1/issueDetails/' + str(issue_id)
         return self._request('GET', url)
 
+    def get_project_version_source_file(self, version_id, path):
+        """
+        Returns an object with information on a source file from a specific project version.
+        It includes the file content.
+        :param version_id: application version id
+        :param path: the relative path of the file from the project root folder
+        :return: details on a source file
+        """
+        url = f'/api/v1/projectVersions/{version_id}/sourceFiles?q=path:"{path}"'
+        return self._request("GET", url)
+
     def get_cloud_pool_list(self):
         """
         Get listing of all cloud pools
@@ -707,10 +757,8 @@ class FortifyApi(object):
         Add LDAP user to Fortify SSC
         :return:
         """
-        data = { "distinguishedName": distinguished_name,
-                 "roles": [{
-                 "permissionIds": [ str(project_version_id)]
-                 }]
+        data = {"distinguishedName": distinguished_name,
+                "roles": [{"permissionIds": [str(project_version_id)]}]
                }
         url = '/api/v1/ldapObjects'
         return self._request('POST', url, json=data)

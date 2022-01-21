@@ -1,0 +1,41 @@
+jobs:
+ build:
+    executor: python/default
+    steps:
+      - checkout
+      - python/install-packages:
+          pkg-manager: pip
+      - python/install-packages:
+          pip-dependency-file: requirements.txt
+          pkg-manager: pip
+      - python/install-packages:
+          args: pytest
+          pkg-manager: pip
+          pypi-cache: false
+
+ publish:
+    executor: python/default
+    steps:
+      - checkout
+      - python/install-packages:
+          pip-dependency-file: requirements.txt
+          pkg-manager: pip      
+      - python/dist
+      - run:
+          command: |
+            sh scripts/circleci-pypi-publish.sh
+
+orbs:
+  python: circleci/python@1.2.0
+version: 2.1
+
+workflows:
+  main:
+    jobs:
+      - build
+      - publish:
+          requires:
+            - build
+          filters:
+            branches:
+              only: master

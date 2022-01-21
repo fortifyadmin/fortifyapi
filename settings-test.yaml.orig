@@ -1,0 +1,12 @@
+# do not include a trailing slash
+ssc_url: https://localhost:8080
+# Do not use admin for production use
+username: admin
+# alternatively place password in .password, specify none to use keychain, or use env PYSSC_PASSWORD
+password: changeme!
+# auth token
+token: xyz
+# proxy
+#proxies:
+#  http: http://127.0.0.1:9000
+#  https: http://127.0.0.1:9000
