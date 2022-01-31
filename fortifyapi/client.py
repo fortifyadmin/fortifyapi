@@ -141,7 +141,7 @@ class Version(SSCObject):
                            seriestype=series_type,
                            groupaxistype=group_axis_type)['data']
 
-    #TODO: Refactor walrus operator for backwards compatibility with 3.8
+    #TODO: Refactor walrus operator to lambda for backwards compatibility with 3.8
     # def upload_artifact(self, file_path, process_block=False):
     #     """
     #     :param process_block: Block this method for Artifact processing
