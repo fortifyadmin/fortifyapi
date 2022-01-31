@@ -141,22 +141,22 @@ class Version(SSCObject):
                            seriestype=series_type,
                            groupaxistype=group_axis_type)['data']
 
-
-    def upload_artifact(self, file_path, process_block=False):
-        """
-        :param process_block: Block this method for Artifact processing
-        """
-        self.assert_is_instance()
-        with self._api as api:
-            with open(file_path, 'rb') as f:
-                robj = api._request('POST', f"/api/v1/projectVersions/{self['id']}/artifacts", files={'file': f})
-                art = Artifact(self._api, robj['data'], self)
-                if process_block:
-                    while a := art.get(art['id']):
-                        if a['status'] in ['PROCESS_COMPLETE', 'ERROR_PROCESSING', 'REQUIRE_AUTH']:
-                            return a
-                        time.sleep(1)
-                return art
+    #TODO: Refactor walrus operator for backwards compatibility with 3.8
+    # def upload_artifact(self, file_path, process_block=False):
+    #     """
+    #     :param process_block: Block this method for Artifact processing
+    #     """
+    #     self.assert_is_instance()
+    #     with self._api as api:
+    #         with open(file_path, 'rb') as f:
+    #             robj = api._request('POST', f"/api/v1/projectVersions/{self['id']}/artifacts", files={'file': f})
+    #             art = Artifact(self._api, robj['data'], self)
+    #             if process_block:
+    #                 while a := art.get(art['id']):
+    #                     if a['status'] in ['PROCESS_COMPLETE', 'ERROR_PROCESSING', 'REQUIRE_AUTH']:
+    #                         return a
+    #                     time.sleep(1)
+    #             return art
 
 
 class Project(SSCObject):
