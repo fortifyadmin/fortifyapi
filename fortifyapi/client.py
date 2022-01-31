@@ -85,11 +85,6 @@ class Version(SSCObject):
             data = template.generate(api=api, project_version_id=self['id'])
             return api.bulk_request(data)
 
-    @staticmethod
-    def description():
-        description = "created on " + str(date.today()) + " from " + getfqdn()
-        return description
-
     def create(self, version_name, description=description(), active=True, committed=False, template=DefaultVersionTemplate):
         """ Creates a version for the CURRENT project """
         self.assert_is_instance("Cannot create version for empty project - consider using `create_project_version`")
