@@ -85,7 +85,7 @@ class Version(SSCObject):
             data = template.generate(api=api, project_version_id=self['id'])
             return api.bulk_request(data)
 
-    def create(self, version_name, description=description(), active=True, committed=False, template=DefaultVersionTemplate):
+    def create(self, version_name, description="", active=True, committed=False, template=DefaultVersionTemplate):
         """ Creates a version for the CURRENT project """
         self.assert_is_instance("Cannot create version for empty project - consider using `create_project_version`")
         assert self.parent['name'] is not None, "how is the parent name None?"
