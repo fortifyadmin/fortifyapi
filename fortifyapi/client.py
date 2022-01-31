@@ -86,7 +86,7 @@ class Version(SSCObject):
             return api.bulk_request(data)
 
     def create(self, version_name, description="", active=True, committed=False, template=DefaultVersionTemplate):
-        """ Creates a version for the CURRENT project """
+        """ Creates a version for the CURRENT project with required processing rules """
         self.assert_is_instance("Cannot create version for empty project - consider using `create_project_version`")
         assert self.parent['name'] is not None, "how is the parent name None?"
         return self.parent.create(self.parent['name'], version_name, description=description, active=active,
