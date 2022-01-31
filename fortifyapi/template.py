@@ -103,102 +103,40 @@ class DefaultVersionTemplate:
 
     def configure_processing_rules(self):
         return self.api.construct_request('PUT', f"/api/v1/projectVersions/{self.project_version_id}/resultProcessingRules", [
-            {
-                "identifier": "com.fortify.manager.BLL.processingrules.BuildProjectProcessingRule",
-                "displayName": "Require approval if the Build Project is different between scans",
-                "displayable": True,
-                "enabled": False
-            },
-            {
-                "identifier": "com.fortify.manager.BLL.processingrules.ExternalListVersionProcessingRule",
-                "displayName": "Check external metadata file versions in scan against versions on server.",
-                "displayable": True,
-                "enabled": True
-            },
-            {
-                "identifier": "com.fortify.manager.BLL.processingrules.FileCountProcessingRule",
-                "displayName": "Require approval if file count differs by more than 10%",
-                "displayable": True,
-                "enabled": False
-            },
-            {
-                "identifier": "com.fortify.manager.BLL.processingrules.ForceMigrationProcessingRule",
-                "displayName": "Perform Force Instance ID migration on upload",
-                "displayable": True,
-                "enabled": False
-            },
-            {
-                "identifier": "com.fortify.manager.BLL.processingrules.FortifyAnnotationsProcessingRule",
-                "displayName": "Require approval if result has Fortify Java Annotations",
-                "displayable": True,
-                "enabled": False
-            },
-            {
-                "identifier": "com.fortify.manager.BLL.processingrules.LOCCountProcessingRule",
-                "displayName": "Require approval if line count differs by more than 10%",
-                "displayable": True,
-                "enabled": False
-            },
-            {
-                "identifier": "com.fortify.manager.BLL.processingrules.MigrationProcessingRule",
-                "displayName": "Automatically perform Instance ID migration on upload",
-                "displayable": True,
-                "enabled": True
-            },
-            {
-                "identifier": "com.fortify.manager.BLL.processingrules.NewerEngineVersionProcessingRule",
-                "displayName": "Require approval if the engine version of a scan is newer than the engine version of the previous scan",
-                "displayable": True,
-                "enabled": False
-            },
-            {
-                "identifier": "com.fortify.manager.BLL.processingrules.QuickScanProcessingRule",
-                "displayName": "Ignore SCA Scans performed in QuickScan mode",
-                "displayable": True,
-                "enabled": True
-            },
-            {
-                "identifier": "com.fortify.manager.BLL.processingrules.RulePackVersionProcessingRule",
-                "displayName": "Require approval if the rulepacks used in the scan do not match the rulepacks used in the previous scan",
-                "displayable": True,
-                "enabled": False
-            },
-            {
-                "identifier": "com.fortify.manager.BLL.processingrules.ValidCertificationProcessingRule",
-                "displayName": "Require approval if SCA or WebInspect Agent scan does not have valid certification",
-                "displayable": True,
-                "enabled": False
-            },
-            {
-                "identifier": "com.fortify.manager.BLL.processingrules.WarningProcessingRule",
-                "displayName": "Require approval if result has analysis warnings",
-                "displayable": True,
-                "enabled": False
-            },
-            {
-                "identifier": "com.fortify.manager.BLL.processingrules.UnknownOrDisallowedAuditedAttrChecker",
-                "displayName": "Warn if audit information includes unknown custom tag",
-                "displayable": True,
-                "enabled": True
-            },
-            {
-                "identifier": "com.fortify.manager.BLL.processingrules.AuditedAnalysisRule",
-                "displayName": "Require the issue audit permission to upload audited analysis files",
-                "displayable": True,
-                "enabled": True
-            },
-            {
-                "identifier": "com.fortify.manager.BLL.processingrules.PendingApprovalChecker",
-                "displayName": "Disallow upload of analysis results if there is one pending approval",
-                "displayable": True,
-                "enabled": False
-            },
-            {
-                "identifier": "com.fortify.manager.BLL.processingrules.VetoCascadingApprovalProcessingRule",
-                "displayName": "Disallow approval for processing if an earlier artifact requires approval",
-                "displayable": True,
-                "enabled": False
-            }
+            {"identifier": "com.fortify.manager.BLL.processingrules.BuildProjectProcessingRule",
+             "enabled": False},
+            {"identifier": "com.fortify.manager.BLL.processingrules.ExternalListVersionProcessingRule",
+             "enabled": False},
+            {"identifier": "com.fortify.manager.BLL.processingrules.FileCountProcessingRule",
+             "enabled": False},
+            {"identifier": "com.fortify.manager.BLL.processingrules.ForceMigrationProcessingRule",
+             "enabled": False},
+            {"identifier": "com.fortify.manager.BLL.processingrules.FortifyAnnotationsProcessingRule",
+             "enabled": False},
+            {"identifier": "com.fortify.manager.BLL.processingrules.LOCCountProcessingRule",
+             "enabled": False},
+            {"identifier": "com.fortify.manager.BLL.processingrules.MigrationProcessingRule",
+             "enabled": True},
+            {"identifier": "com.fortify.manager.BLL.processingrules.NewerEngineVersionProcessingRule",
+             "enabled": False},
+            {"identifier": "com.fortify.manager.BLL.processingrules.QuickScanProcessingRule",
+             "enabled": False},
+            {"identifier": "com.fortify.manager.BLL.processingrules.RulePackVersionProcessingRule",
+             "enabled": False},
+            {"identifier": "com.fortify.manager.BLL.processingrules.ValidCertificationProcessingRule",
+             "enabled": False},
+            {"identifier": "com.fortify.manager.BLL.processingrules.WarningProcessingRule",
+             "enabled": False},
+            {"identifier": "com.fortify.manager.BLL.processingrules.UnknownOrDisallowedAuditedAttrChecker",
+             "enabled": False},
+            {"identifier": "com.fortify.manager.BLL.processingrules.AuditedAnalysisRule",
+             "enabled": False},
+            {"identifier": "com.fortify.manager.BLL.processingrules.HiddenTagAuditsAnalysisRule",
+             "enabled": False},
+            {"identifier": "com.fortify.manager.BLL.processingrules.PendingApprovalChecker",
+             "enabled": False},
+            {"identifier": "com.fortify.manager.BLL.processingrules.VetoCascadingApprovalProcessingRule",
+             "enabled": False}
         ])
 
 
@@ -234,3 +172,5 @@ class CloneVersionTemplate(DefaultVersionTemplate):
                 }
             }
         ])
+
+

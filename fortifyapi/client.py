@@ -1,4 +1,6 @@
 from typing import Union, Tuple
+from datetime import date
+from socket import getfqdn
 import time
 
 from .exceptions import *
@@ -83,13 +85,13 @@ class Version(SSCObject):
             data = template.generate(api=api, project_version_id=self['id'])
             return api.bulk_request(data)
 
-    def create(self, version_name, description="", active=True, committed=False, template=DefaultVersionTemplate):
+    def create(self, version_name, description=description(), active=True, committed=False, template=DefaultVersionTemplate):
         """ Creates a version for the CURRENT project """
         self.assert_is_instance("Cannot create version for empty project - consider using `create_project_version`")
         assert self.parent['name'] is not None, "how is the parent name None?"
         return self.parent.create(self.parent['name'], version_name, description=description, active=active,
-                           committed=committed, project_id=self.parent['id'],
-                           issue_template_id=self.parent['issueTemplateId'], template=template)
+                                  committed=committed, project_id=self.parent['id'],
+                                  issue_template_id=self.parent['issueTemplateId'], template=template)
 
     def copy(self, new_name: str, new_description: str = ""):
         """
@@ -117,6 +119,10 @@ class Version(SSCObject):
     def get(self, id):
         with self._api as api:
             return Version(self._api, api.get(f"/api/v1/projectVersions/{id}")['data'], self.parent)
+
+    def project_exist(self):
+        with self._api as api:
+            return
 
     def delete(self):
         """ Delete the current version """
@@ -199,7 +205,8 @@ class Project(SSCObject):
         with self._api as api:
             return Project(self._api, api.put(f"/api/v1/projects/{self['id']}", self)['data'], self)
 
-    def create(self, project_name, version_name, project_id=None, description="", active=True,
+    def create(self, project_name, version_name, project_id=None, description="Created on " + str(date.today())
+               + " from " + getfqdn(), active=True,
                committed=False, issue_template_id='Prioritized-HighRisk-Project-Template',
                template=DefaultVersionTemplate):
         """
@@ -238,7 +245,8 @@ class Project(SSCObject):
             p = Project(self._api, {}, None).get(p['id'])
             return p.versions.get(v['id'])
 
-    def upsert(self, project_name, version_name, description="", active=True,
+    def upsert(self, project_name, version_name, description="Created on " + str(date.today())
+               + " from " + getfqdn() , active=True,
                committed=False, issue_template_id='Prioritized-HighRisk-Project-Template',
                template=DefaultVersionTemplate) -> Version:
         """ same as create but uses existing project and version"""
