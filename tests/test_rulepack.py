@@ -3,8 +3,7 @@ from pprint import pprint
 
 from constants import Constants
 
-from fortifyapi.exceptions import *
-from fortifyapi import FortifySSCClient, Query
+from fortifyapi import FortifySSCClient
 
 
 class TestRulepack(TestCase):
@@ -18,7 +17,9 @@ class TestRulepack(TestCase):
 
         for rule in rules:
             for message in rule['statuses']:
-                print("{}".format(message['message']))
-                self.assertIsNotNone(message)
+                rulepack_content = message['message']
+                self.assertNotEqual(len(rulepack_content), 0)
+                self.assertIsNotNone(message['message'])
+                #print("{}".format(message['message']))
 
 
