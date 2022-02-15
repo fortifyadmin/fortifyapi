@@ -21,6 +21,7 @@ class FortifySSCClient:
         self._api = FortifySSCAPI(url, auth, proxies, verify)
 
         self.projects = Project(self._api, None, self)
+        self.versions = Version(self._api, None, self)
         self.pools = CloudPool(self._api, None, self)
         self.jobs = CloudJob(self._api, None, self)
         self.reports = Report(self._api, None, self)
@@ -149,6 +150,17 @@ class Version(SSCObject):
                            seriestype=series_type,
                            groupaxistype=group_axis_type)['data']
 
+    def test(self, application_name: str, version_name: str) -> bool:
+        """
+        Check whether the specified application name is already defined in the system
+        :param project_name: Application or Project name in SSC you want to test the value of.
+        :param project_version_name: Application or Project version you want to test the value of.
+        :return: A response object of found for true or false
+        """
+        with self._api as api:
+            return api.post(f"/api/v1/projectVersions/action/test", projectName=application_name,
+                            projectVersionName=version_name)['data']['found']
+
     #TODO: Refactor walrus operator to lambda for backwards compatibility with 3.8
     # def upload_artifact(self, file_path, process_block=False):
     #     """
@@ -253,7 +265,9 @@ class Project(SSCObject):
                template=DefaultVersionTemplate) -> Version:
         """ same as create but uses existing project and version"""
         # see if the project exists
-        # TODO: change this to /projectVersions/action/test with {projectName:x, projectVersionName: y}
+        # TODO: implement this versions = Version.test(application_name=None, version_name=None)
+        #  with {projectName:x, projectVersionName: y}
+        # added
         q = Query().query("name", project_name)
         projects = list(self.list(q=q))
         if len(projects) == 0:
@@ -264,16 +278,7 @@ class Project(SSCObject):
             project = projects[0]
             # but check if the version is there...
             """
-            Check whether the specified application name is already defined in the system
-            :param project_name: Application or Project name in SSC you want to test the value of.
-            :param project_version_name: Application or Project version you want to test the value of.
-            :return: A response object of found for true or false
-            data = {
-                "projectName": project_name,
-                "projectVersionName": project_version_name
-            }
-
-            url = "/api/v1/projectVersions/action/test"
+            project_version = version_name[0]
             """
             for v in project.versions.list():
                 if v['name'] == version_name:
@@ -367,7 +372,7 @@ class Scan(SSCObject):
     def get(self, id):
         f"/api/v1/scans/{id}" # GET
 
-    def list(self):
+    def list(self, **kwargs):
         with self._api as api:
             for e in api.page_data(f"/api/v1/artifacts/{self['id']}/scans", **kwargs):
                 yield Scan(self._api, e, self)
@@ -627,6 +632,7 @@ class CustomTag(SSCObject):
         f"/api/v1/projectVersions/{self.parent['id']}/customTags/{self['id']}"
         raise NotImplementedError()
 
+
 class Role(SSCObject):
 
     def list(self, **kwargs):
@@ -642,7 +648,7 @@ class AuthEntity(SSCObject):
             for e in api.page_data(f"/api/v1/authEntities", **kwargs):
                 yield AuthEntity(self._api, e, self.parent)
 
-    def get(self, id):
+    def get(self, id, **kwargs):
         with self._api as api:
             return api.get(f"/api/v1/authEntities/{id}", **kwargs)['data']
 
@@ -679,6 +685,11 @@ class User(SSCObject):
 
     def get(self, username):
         pass
+
+
+# Stub for methods to be added later
+class Roles(SSCObject):
+    pass
 
 
 class LocalUser(SSCObject):
