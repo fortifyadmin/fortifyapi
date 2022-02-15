@@ -277,9 +277,7 @@ class Project(SSCObject):
             # should be the first one
             project = projects[0]
             # but check if the version is there...
-            """
-            project_version = version_name[0]
-            """
+            #TODO: implement this > project_version = Version.test(application_name=None, version_name=None)
             for v in project.versions.list():
                 if v['name'] == version_name:
                     return v
