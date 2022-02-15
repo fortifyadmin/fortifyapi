@@ -1,4 +1,4 @@
-@Library('snc-jenkins-pipelines') _
+@Library('fortifyadmin-jenkins-pipelines') _
 
 pipeline {
     agent {

@@ -26,6 +26,7 @@ class FortifySSCClient:
         self.reports = Report(self._api, None, self)
         self.auth_entities = AuthEntity(self._api, None, self)
         self.ldap_user = LdapUser(self._api, None, self)
+        self.rulepack = Rulepack(self._api, None, self)
 
     def _list(self, endpoint, **kwargs):
         with self._api as api:
@@ -262,6 +263,18 @@ class Project(SSCObject):
             # should be the first one
             project = projects[0]
             # but check if the version is there...
+            """
+            Check whether the specified application name is already defined in the system
+            :param project_name: Application or Project name in SSC you want to test the value of.
+            :param project_version_name: Application or Project version you want to test the value of.
+            :return: A response object of found for true or false
+            data = {
+                "projectName": project_name,
+                "projectVersionName": project_version_name
+            }
+
+            url = "/api/v1/projectVersions/action/test"
+            """
             for v in project.versions.list():
                 if v['name'] == version_name:
                     return v
@@ -593,6 +606,10 @@ class Rulepack(SSCObject):
         f"/api/v1/coreRulepacks/{self['id']}"  # DELETE
         raise NotImplementedError()
 
+    def update(self):
+        "f/api/v1/updateRulepacks" # GET
+        raise NotImplementedError()
+
 
 class CustomTag(SSCObject):
     """ Specifically for project versions """
@@ -684,3 +701,5 @@ class LdapUser(SSCObject):
             self['roles'] = [{'id': 'developer'}]
         with self._api as api:
             return LdapUser(self._api, api.post(f"/api/v1/ldapObjects", self)['data'], self)
+
+
