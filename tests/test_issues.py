@@ -1,10 +1,7 @@
 from unittest import TestCase
 from pprint import pprint
-
 from constants import Constants
-
-from fortifyapi.exceptions import *
-from fortifyapi import FortifySSCClient, Query, Issue, CloneVersionTemplate
+from fortifyapi import FortifySSCClient, Issue, CloneVersionTemplate
 
 
 class TestIssues(TestCase):

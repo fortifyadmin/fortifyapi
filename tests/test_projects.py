@@ -1,9 +1,6 @@
 from unittest import TestCase
-
 from constants import Constants
 from random import randint
-from pprint import pprint
-
 from fortifyapi.exceptions import *
 from fortifyapi import FortifySSCClient, Query
 

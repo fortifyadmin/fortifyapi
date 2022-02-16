@@ -1,8 +1,5 @@
 from unittest import TestCase
-
 from constants import Constants
-
-from fortifyapi.exceptions import *
 from fortifyapi import FortifySSCClient
 from fortifyapi.client import Project
 

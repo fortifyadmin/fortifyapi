@@ -1,7 +1,6 @@
 from typing import Union, Tuple
 from datetime import date
 from socket import getfqdn
-import time
 
 from .exceptions import *
 from .template import *
@@ -609,7 +608,12 @@ class Rulepack(SSCObject):
         raise NotImplementedError()
 
     def update(self):
-        "f/api/v1/updateRulepacks" # GET
+        try:
+            with self._api as api:
+                for rules in api.page_data(f"/api/v1/updateRulepacks"):
+                    yield Rulepack(self._api, rules, self.parent)
+        except KeyError:
+            print(f"{rules['message']}")
 
 
 class CustomTag(SSCObject):
