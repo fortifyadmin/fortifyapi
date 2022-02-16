@@ -26,6 +26,7 @@ class FortifySSCClient:
         self.reports = Report(self._api, None, self)
         self.auth_entities = AuthEntity(self._api, None, self)
         self.ldap_user = LdapUser(self._api, None, self)
+        self.rulepack = Rulepack(self._api, None, self)
 
     def _list(self, endpoint, **kwargs):
         with self._api as api:
@@ -148,6 +149,17 @@ class Version(SSCObject):
                            seriestype=series_type,
                            groupaxistype=group_axis_type)['data']
 
+    def test(self, application_name: str, version_name: str) -> bool:
+        """
+        Check whether the specified application name is already defined in the system
+        :param project_name: Application or Project name in SSC you want to test the value of.
+        :param project_version_name: Application or Project version you want to test the value of.
+        :return: A response object of found for true or false
+        """
+        with self._api as api:
+            return api.post(f"/api/v1/projectVersions/action/test", projectName=application_name,
+                            projectVersionName=version_name)['data']['found']
+
     #TODO: Refactor walrus operator to lambda for backwards compatibility with 3.8
     # def upload_artifact(self, file_path, process_block=False):
     #     """
@@ -252,7 +264,9 @@ class Project(SSCObject):
                template=DefaultVersionTemplate) -> Version:
         """ same as create but uses existing project and version"""
         # see if the project exists
-        # TODO: change this to /projectVersions/action/test with {projectName:x, projectVersionName: y}
+        # TODO: implement this versions = Version.test(application_name=None, version_name=None)
+        #  with {projectName:x, projectVersionName: y}
+        # added
         q = Query().query("name", project_name)
         projects = list(self.list(q=q))
         if len(projects) == 0:
@@ -262,6 +276,7 @@ class Project(SSCObject):
             # should be the first one
             project = projects[0]
             # but check if the version is there...
+            #TODO: implement this > project_version = Version.test(application_name=None, version_name=None)
             for v in project.versions.list():
                 if v['name'] == version_name:
                     return v
@@ -354,7 +369,7 @@ class Scan(SSCObject):
     def get(self, id):
         f"/api/v1/scans/{id}" # GET
 
-    def list(self):
+    def list(self, **kwargs):
         with self._api as api:
             for e in api.page_data(f"/api/v1/artifacts/{self['id']}/scans", **kwargs):
                 yield Scan(self._api, e, self)
@@ -593,6 +608,9 @@ class Rulepack(SSCObject):
         f"/api/v1/coreRulepacks/{self['id']}"  # DELETE
         raise NotImplementedError()
 
+    def update(self):
+        "f/api/v1/updateRulepacks" # GET
+
 
 class CustomTag(SSCObject):
     """ Specifically for project versions """
@@ -610,6 +628,7 @@ class CustomTag(SSCObject):
         f"/api/v1/projectVersions/{self.parent['id']}/customTags/{self['id']}"
         raise NotImplementedError()
 
+
 class Role(SSCObject):
 
     def list(self, **kwargs):
@@ -625,7 +644,7 @@ class AuthEntity(SSCObject):
             for e in api.page_data(f"/api/v1/authEntities", **kwargs):
                 yield AuthEntity(self._api, e, self.parent)
 
-    def get(self, id):
+    def get(self, id, **kwargs):
         with self._api as api:
             return api.get(f"/api/v1/authEntities/{id}", **kwargs)['data']
 
@@ -664,6 +683,11 @@ class User(SSCObject):
         pass
 
 
+# Stub for methods to be added later
+class Roles(SSCObject):
+    pass
+
+
 class LocalUser(SSCObject):
     pass
 
@@ -684,3 +708,5 @@ class LdapUser(SSCObject):
             self['roles'] = [{'id': 'developer'}]
         with self._api as api:
             return LdapUser(self._api, api.post(f"/api/v1/ldapObjects", self)['data'], self)
+
+
