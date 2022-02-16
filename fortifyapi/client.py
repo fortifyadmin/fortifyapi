@@ -610,7 +610,6 @@ class Rulepack(SSCObject):
 
     def update(self):
         "f/api/v1/updateRulepacks" # GET
-        raise NotImplementedError()
 
 
 class CustomTag(SSCObject):
