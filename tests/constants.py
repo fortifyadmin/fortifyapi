@@ -1,6 +1,5 @@
 import getpass
 import os
-from fortifyapi import FortifySSCAPI
 
 try:
     import yaml
