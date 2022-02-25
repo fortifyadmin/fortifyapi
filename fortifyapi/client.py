@@ -1,6 +1,6 @@
 from typing import Union, Tuple
 from datetime import date
-from socket import getfqdn
+from socket import gethostname
 
 from .exceptions import *
 from .template import *
@@ -218,7 +218,7 @@ class Project(SSCObject):
             return Project(self._api, api.put(f"/api/v1/projects/{self['id']}", self)['data'], self)
 
     def create(self, project_name, version_name, project_id=None, description="Created on " + str(date.today())
-               + " from " + getfqdn(), active=True,
+               + " from " + gethostname(), active=True,
                committed=False, issue_template_id='Prioritized-HighRisk-Project-Template',
                template=DefaultVersionTemplate):
         """
@@ -258,7 +258,7 @@ class Project(SSCObject):
             return p.versions.get(v['id'])
 
     def upsert(self, project_name, version_name, description="Created on " + str(date.today())
-               + " from " + getfqdn() , active=True,
+               + " from " + gethostname() , active=True,
                committed=False, issue_template_id='Prioritized-HighRisk-Project-Template',
                template=DefaultVersionTemplate) -> Version:
         """ same as create but uses existing project and version"""
