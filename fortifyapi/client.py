@@ -404,6 +404,7 @@ class Artifact(SSCObject):
 
 
 class Issue(SSCObject):
+    NOT_SET = -1
     NOT_AN_ISSUE = 0
     RELIABILITY_ISSUE = 1
     BAD_PRACTICE = 2
@@ -437,6 +438,7 @@ class Issue(SSCObject):
         """
         self.assert_is_instance()
         assert analysis in [
+            Issue.NOT_SET,
             Issue.NOT_AN_ISSUE,
             Issue.RELIABILITY_ISSUE,
             Issue.BAD_PRACTICE,
