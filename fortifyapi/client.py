@@ -19,6 +19,7 @@ class FortifySSCClient:
         self._auth = auth
         self._api = FortifySSCAPI(url, auth, proxies, verify)
 
+        self.versions = Version(self._api, None, self)
         self.projects = Project(self._api, None, self)
         self.pools = CloudPool(self._api, None, self)
         self.jobs = CloudJob(self._api, None, self)

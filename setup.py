@@ -27,6 +27,11 @@ if sys.argv[-1] == 'publish-test':
     os.system('python setup.py sdist bdist_wheel upload -r pypitest')
     sys.exit(0)
 
+if sys.argv[-1] == 'publish':
+    os.system('python setup.py sdist bdist_wheel')
+    os.system('twine upload dist/*')
+    sys.exit()
+
 setup(
     name='fortifyapi',
     packages=['fortifyapi'],
@@ -42,6 +47,7 @@ setup(
     zip_safe=True,
     test_suite='nose.collector',
     tests_require=['nose'],
+    requires=['requests'],
     install_requires=['requests'],
     keywords=['fortify', 'api', 'security', 'software', 'microfocus', 'ssc', 'sast'],
     classifiers=[
