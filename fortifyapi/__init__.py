@@ -1,4 +1,4 @@
-__version__ = '3.0.13'
+__version__ = '3.0.15'
 
 from fortifyapi.client import *
 from fortifyapi.query import Query

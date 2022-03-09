@@ -2,7 +2,7 @@ from typing import Union, Tuple
 from datetime import date
 from socket import gethostname
 import json
-
+from sys import exit
 from .exceptions import *
 from .template import *
 from .query import Query
@@ -241,7 +241,7 @@ class Project(SSCObject):
         """
         # Test if Project Version exists
         if self.versions.test(project_name, version_name):
-            print("Project: {} Version: {} exists!".format(project_name, version_name))
+            exit("Project: {} Version: {} exists!".format(project_name, version_name))
         else:
             with self._api as api:
                 r = api.post(f"/api/v1/projectVersions", {
@@ -262,7 +262,7 @@ class Project(SSCObject):
                 v = Version(self._api, r['data'], p)
                 v.initialize(template=template)
                 # get it again, so we see it's true state
-                # but we should really just re-get the Project, so it has all the proper data
+                # we should really just re-get the Project, so it has all the proper data
                 p = Project(self._api, {}, None).get(p['id'])
                 return p.versions.get(v['id'])
 
@@ -283,8 +283,9 @@ class Project(SSCObject):
             q = Query().query("name", project_name)
             projects = list(self.list(q=q))
             project = projects[0]
-            return self.create(project_name, version_name, project_id=project['id'], description=description, active=active,
-                               committed=committed, issue_template_id=issue_template_id, template=template)
+            return self.create(project_name, version_name, project_id=project['id'], description=description,
+                               active=active, committed=committed, issue_template_id=issue_template_id,
+                               template=template)
 
     def delete(self):
         # delete every version and project will delete
