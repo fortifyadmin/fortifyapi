@@ -1,8 +1,6 @@
 from typing import Union, Tuple
 from datetime import date
 from socket import gethostname
-import json
-from sys import exit
 from .exceptions import *
 from .template import *
 from .query import Query
@@ -153,8 +151,8 @@ class Version(SSCObject):
     def test(self, application_name: str, version_name: str) -> bool:
         """
         Check whether the specified application name is already defined in the system
-        :param project_name: Application or Project name in SSC you want to test the value of.
-        :param project_version_name: Application or Project version you want to test the value of.
+        :param application_name: Application or Project name in SSC you want to test the value of.
+        :param version_name: Application or Project version you want to test the value of.
         :return: A response object of found for true or false
         """
         with self._api as api:
@@ -241,7 +239,7 @@ class Project(SSCObject):
         """
         # Test if Project Version exists
         if self.versions.test(project_name, version_name):
-            exit("Project: {} Version: {} exists!".format(project_name, version_name))
+            print(f"Project: {project_name} Version: {version_name} exists!")
         else:
             with self._api as api:
                 r = api.post(f"/api/v1/projectVersions", {
@@ -267,7 +265,7 @@ class Project(SSCObject):
                 return p.versions.get(v['id'])
 
     def upsert(self, project_name, version_name, description="Created on " + str(date.today())
-               + " from " + gethostname() , active=True,
+               + " from " + gethostname(), active=True,
                committed=False, issue_template_id='Prioritized-HighRisk-Project-Template',
                template=DefaultVersionTemplate) -> Version:
         """
@@ -276,9 +274,9 @@ class Project(SSCObject):
         """
         # test if project doesn't exist and create both project version
         if self.test(application_name=project_name) is False:
-            return self.create(project_name, version_name, description=description, active=active, committed=committed,
-                               issue_template_id=issue_template_id, template=template)
-        # otherwise create new version under an existing project.
+            return self.create(project_name, version_name, description=description, active=active,
+                               committed=committed, issue_template_id=issue_template_id, template=template)
+        # create new version under an existing project.
         else:
             q = Query().query("name", project_name)
             projects = list(self.list(q=q))
@@ -371,7 +369,7 @@ class CloudJob(SSCObject):
 class Scan(SSCObject):
 
     def get(self, id):
-        f"/api/v1/scans/{id}" # GET
+        f"/api/v1/scans/{id}"  # GET
 
     def list(self, **kwargs):
         with self._api as api:
@@ -534,7 +532,7 @@ class Attribute(SSCObject):
         raise NotImplementedError()
 
     def update(self):
-        f"/api/v1/projectVersions/{self['id']}/attributes" # PUT
+        f"/api/v1/projectVersions/{self['id']}/attributes"  # PUT
         raise NotImplementedError()
 
 
@@ -662,8 +660,8 @@ class AuthEntity(SSCObject):
     def find_ldap_user(self, username):
         with self._api as api:
             data = api.get(f"/api/v1/authEntities", q="isLdap:true",
-                                                embed='roles(name)', entityName=username, orderby='entityName',
-                                                start=0, limit=-1)['data']
+                           embed='roles(name)', entityName=username, orderby='entityName',
+                           start=0, limit=-1)['data']
             if len(data) > 0:
                 return AuthEntity(self._api, data[0], self.parent)
             return None
@@ -719,5 +717,4 @@ class LdapUser(SSCObject):
             self['roles'] = [{'id': 'developer'}]
         with self._api as api:
             return LdapUser(self._api, api.post(f"/api/v1/ldapObjects", self)['data'], self)
-
 
