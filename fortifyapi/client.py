@@ -1,7 +1,6 @@
 from typing import Union, Tuple
 from datetime import date
 from socket import gethostname
-
 from .exceptions import *
 from .template import *
 from .query import Query
@@ -19,6 +18,7 @@ class FortifySSCClient:
         self._auth = auth
         self._api = FortifySSCAPI(url, auth, proxies, verify)
 
+        self.versions = Version(self._api, None, self)
         self.projects = Project(self._api, None, self)
         self.pools = CloudPool(self._api, None, self)
         self.jobs = CloudJob(self._api, None, self)
@@ -151,8 +151,8 @@ class Version(SSCObject):
     def test(self, application_name: str, version_name: str) -> bool:
         """
         Check whether the specified application name is already defined in the system
-        :param project_name: Application or Project name in SSC you want to test the value of.
-        :param project_version_name: Application or Project version you want to test the value of.
+        :param application_name: Application or Project name in SSC you want to test the value of.
+        :param version_name: Application or Project version you want to test the value of.
         :return: A response object of found for true or false
         """
         with self._api as api:
@@ -222,7 +222,10 @@ class Project(SSCObject):
                committed=False, issue_template_id='Prioritized-HighRisk-Project-Template',
                template=DefaultVersionTemplate):
         """
-
+        You want to use upsert method for your implementation and NOT this function directly.  project.id is not
+        validated which may not be a big deal, but may create problems in edge cases. See also SSC spec,
+        project-version-controller, Manage application versions. A variety of associated resources are accessible
+         via links.
         :param project_name:
         :param version_name:
         :param project_id:
@@ -234,53 +237,53 @@ class Project(SSCObject):
         :return: Returns the Version object
         :rtype: fortifyapi.Version
         """
-        with self._api as api:
-            r = api.post(f"/api/v1/projectVersions", {
-                'name': version_name,
-                'description': description,
-                'active': active,
-                'committed': committed,
-                'project': {
-                    'id': project_id,  # if this is None it will create the project
-                    'name': project_name,
+        # Test if Project Version exists
+        if self.versions.test(project_name, version_name):
+            print(f"Project: {project_name} Version: {version_name} exists!")
+        else:
+            with self._api as api:
+                r = api.post(f"/api/v1/projectVersions", {
+                    'name': version_name,
                     'description': description,
+                    'active': active,
+                    'committed': committed,
+                    'project': {
+                        'id': project_id,  # if this is None it will create the project
+                        'name': project_name,
+                        'description': description,
+                        'issueTemplateId': issue_template_id
+                    },
                     'issueTemplateId': issue_template_id
-                },
-                'issueTemplateId': issue_template_id
-            })
-            p = Project(self._api, r['data']['project'], None) if 'project' in r['data'] else self
+                })
+                p = Project(self._api, r['data']['project'], None) if 'project' in r['data'] else self
 
-            v = Version(self._api, r['data'], p)
-            v.initialize(template=template)
-            # get it again so we see it's true state
-            # but we should really just re-get the Project so it has all the proper data
-            p = Project(self._api, {}, None).get(p['id'])
-            return p.versions.get(v['id'])
+                v = Version(self._api, r['data'], p)
+                v.initialize(template=template)
+                # get it again, so we see it's true state
+                # we should really just re-get the Project, so it has all the proper data
+                p = Project(self._api, {}, None).get(p['id'])
+                return p.versions.get(v['id'])
 
     def upsert(self, project_name, version_name, description="Created on " + str(date.today())
-               + " from " + gethostname() , active=True,
+               + " from " + gethostname(), active=True,
                committed=False, issue_template_id='Prioritized-HighRisk-Project-Template',
                template=DefaultVersionTemplate) -> Version:
-        """ same as create but uses existing project and version"""
-        # see if the project exists
-        # TODO: implement this versions = Version.test(application_name=None, version_name=None)
-        #  with {projectName:x, projectVersionName: y}
-        # added
-        q = Query().query("name", project_name)
-        projects = list(self.list(q=q))
-        if len(projects) == 0:
-            return self.create(project_name, version_name, description=description, active=active, committed=committed,
-                               issue_template_id=issue_template_id, template=template)
-        else:
-            # should be the first one
-            project = projects[0]
-            # but check if the version is there...
-            #TODO: implement this > project_version = Version.test(application_name=None, version_name=None)
-            for v in project.versions.list():
-                if v['name'] == version_name:
-                    return v
-            return self.create(project_name, version_name, project_id=project['id'], description=description, active=active,
+        """
+        Implements the Project().create, but will test/ query if project exists, if not it will
+        create both Project and version.  A project is dependent on at least one version associated to it.
+        """
+        # test if project doesn't exist and create both project version
+        if self.test(application_name=project_name) is False:
+            return self.create(project_name, version_name, description=description, active=active,
                                committed=committed, issue_template_id=issue_template_id, template=template)
+        # create new version under an existing project.
+        else:
+            q = Query().query("name", project_name)
+            projects = list(self.list(q=q))
+            project = projects[0]
+            return self.create(project_name, version_name, project_id=project['id'], description=description,
+                               active=active, committed=committed, issue_template_id=issue_template_id,
+                               template=template)
 
     def delete(self):
         # delete every version and project will delete
@@ -366,7 +369,7 @@ class CloudJob(SSCObject):
 class Scan(SSCObject):
 
     def get(self, id):
-        f"/api/v1/scans/{id}" # GET
+        f"/api/v1/scans/{id}"  # GET
 
     def list(self, **kwargs):
         with self._api as api:
@@ -529,7 +532,7 @@ class Attribute(SSCObject):
         raise NotImplementedError()
 
     def update(self):
-        f"/api/v1/projectVersions/{self['id']}/attributes" # PUT
+        f"/api/v1/projectVersions/{self['id']}/attributes"  # PUT
         raise NotImplementedError()
 
 
@@ -657,8 +660,8 @@ class AuthEntity(SSCObject):
     def find_ldap_user(self, username):
         with self._api as api:
             data = api.get(f"/api/v1/authEntities", q="isLdap:true",
-                                                embed='roles(name)', entityName=username, orderby='entityName',
-                                                start=0, limit=-1)['data']
+                           embed='roles(name)', entityName=username, orderby='entityName',
+                           start=0, limit=-1)['data']
             if len(data) > 0:
                 return AuthEntity(self._api, data[0], self.parent)
             return None
@@ -714,5 +717,4 @@ class LdapUser(SSCObject):
             self['roles'] = [{'id': 'developer'}]
         with self._api as api:
             return LdapUser(self._api, api.post(f"/api/v1/ldapObjects", self)['data'], self)
-
 
