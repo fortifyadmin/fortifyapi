@@ -820,6 +820,18 @@ class FortifyApi(object):
         }
 
         return self._request('GET', url, params)
+    
+    def get_all_bugtrackers(self):
+        url = '/api/v1/bugtrackers'
+        return self._request('GET', url)
+    
+    def get_version_bugtracker(self,project_version_id):
+        url = '/api/v1/projectVersions/'+str(project_version_id)+'/bugtracker'
+        return self._request('GET', url)
+    
+    def set_version_bugtracker(self,project_version_id,bugtracker_data):
+        url = '/api/v1/projectVersions/'+str(project_version_id)+'/bugtracker'
+        return self._request('PUT', url,json=bugtracker_data)
 
     def _request(self, method, url, params=None, files=None, json=None, data=None, headers=None, stream=False):
         """Common handler for all HTTP requests."""
