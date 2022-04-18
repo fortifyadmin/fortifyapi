@@ -156,8 +156,10 @@ class FortifySSCAPI:
     def put(self, endpoint, *args, **kwargs):
         data = args[0] if args else {}
         data = {**data, **kwargs}
-        print(data)
         return self._request('put', endpoint, json=data)
+    
+    def put_array(self, endpoint, array):
+        return self._request('put', endpoint, json=array)
 
     def delete(self, endpoint, *args, **kwargs):
         data = args[0] if args else {}
