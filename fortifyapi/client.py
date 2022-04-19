@@ -170,12 +170,11 @@ class Version(SSCObject):
                 robj = api._request('POST', f"/api/v1/projectVersions/{self['id']}/artifacts", files={'file': f})
                 art = Artifact(self._api, robj['data'], self)
                 if process_block:
-                    a = art.get(art['id'])
-                    while a:
+                    while True:
+                        a = art.get(art['id'])
                         if a['status'] in ['PROCESS_COMPLETE', 'ERROR_PROCESSING', 'REQUIRE_AUTH']:
                             return a
                         time.sleep(1)
-                        a = art.get(art['id'])
                 return art
 
 
