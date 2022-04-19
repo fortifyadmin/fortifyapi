@@ -28,6 +28,9 @@ class TestProjects(TestCase):
         projects = list(client.projects.list())
         print(projects[0])
 
+        r = client.projects.test("random name that doesnt exist")
+        self.assertFalse(r)
+
         r = client.projects.test(projects[0]['name'])
         self.assertTrue(r)
 
@@ -106,3 +109,13 @@ class TestProjects(TestCase):
         time.sleep(5)
 
         self.assertRaises(ResourceNotFound, client.projects.get, id)
+
+    def test_project_create(self):
+        project_name = 'HealthScan ACL Issues UI Actions'
+
+        client = FortifySSCClient(self.c.url, self.c.token)
+        self.c.setup_proxy(client)
+        res = client.projects.upsert(project_name, 'default')
+        self.assertIsNotNone(res)
+        print(res)
+        self.assertEqual(res['project']['name'], project_name)

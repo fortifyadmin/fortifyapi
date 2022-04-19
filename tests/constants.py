@@ -18,7 +18,8 @@ class Constants(object):
             self.CONF_FILE = conf
         try:
             if yaml:
-                with open(self.CONF_FILE, 'r') as f:
+                true_path = os.path.abspath(os.path.join(__file__, '../..', self.CONF_FILE))
+                with open(true_path, 'r') as f:
                     self._settings = yaml.load(f, Loader=yaml.FullLoader)
             else:
                 self._settings = {}

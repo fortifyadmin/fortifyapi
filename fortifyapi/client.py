@@ -234,35 +234,31 @@ class Project(SSCObject):
         :param committed:
         :param issue_template_id:
         :param template:
-        :return: Returns the Version object
-        :rtype: fortifyapi.Version
+        :return: Returns the Version object or False
+        :rtype: fortifyapi.Version or bool
         """
-        # Test if Project Version exists
-        if self.versions.test(project_name, version_name):
-            print(f"Project: {project_name} Version: {version_name} exists!")
-        else:
-            with self._api as api:
-                r = api.post(f"/api/v1/projectVersions", {
-                    'name': version_name,
+        with self._api as api:
+            r = api.post(f"/api/v1/projectVersions", {
+                'name': version_name,
+                'description': description,
+                'active': active,
+                'committed': committed,
+                'project': {
+                    'id': project_id,  # if this is None it will create the project
+                    'name': project_name,
                     'description': description,
-                    'active': active,
-                    'committed': committed,
-                    'project': {
-                        'id': project_id,  # if this is None it will create the project
-                        'name': project_name,
-                        'description': description,
-                        'issueTemplateId': issue_template_id
-                    },
                     'issueTemplateId': issue_template_id
-                })
-                p = Project(self._api, r['data']['project'], None) if 'project' in r['data'] else self
+                },
+                'issueTemplateId': issue_template_id
+            })
+            p = Project(self._api, r['data']['project'], None) if 'project' in r['data'] else self
 
-                v = Version(self._api, r['data'], p)
-                v.initialize(template=template)
-                # get it again, so we see it's true state
-                # we should really just re-get the Project, so it has all the proper data
-                p = Project(self._api, {}, None).get(p['id'])
-                return p.versions.get(v['id'])
+            v = Version(self._api, r['data'], p)
+            v.initialize(template=template)
+            # get it again, so we see it's true state
+            # we should really just re-get the Project, so it has all the proper data
+            p = Project(self._api, {}, None).get(p['id'])
+            return p.versions.get(v['id'])
 
     def upsert(self, project_name, version_name, description="Created on " + str(date.today())
                + " from " + gethostname(), active=True,
@@ -276,14 +272,27 @@ class Project(SSCObject):
         if self.test(application_name=project_name) is False:
             return self.create(project_name, version_name, description=description, active=active,
                                committed=committed, issue_template_id=issue_template_id, template=template)
-        # create new version under an existing project.
-        else:
+        elif self.versions.test(project_name, version_name) is False:
             q = Query().query("name", project_name)
             projects = list(self.list(q=q))
+            if len(projects) == 0:
+                raise ParentNotFoundException(f"Somehow `{project_name}` exists yet we cannot query for it")
             project = projects[0]
+            print('we are upserting version')
             return self.create(project_name, version_name, project_id=project['id'], description=description,
                                active=active, committed=committed, issue_template_id=issue_template_id,
                                template=template)
+        else:
+            q = Query().query("name", project_name)
+            projects = list(self.list(q=q))
+            if len(projects) == 0:
+                raise ParentNotFoundException(f"Somehow `{project_name}` exists yet we cannot query for it")
+            project = projects[0]
+            versions = list(project.versions.list(q=Query().query("name", version_name)))
+            if len(versions) == 0:
+                raise ParentNotFoundException(f"Somehow `{project_name}` and version `{version_name}` exists yet we cannot query for it")
+            return versions[0]
+
 
     def delete(self):
         # delete every version and project will delete
