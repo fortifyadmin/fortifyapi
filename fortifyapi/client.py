@@ -40,6 +40,11 @@ class FortifySSCClient:
         kwargs['limit'] = -1
         for e in self._list('/api/v1/projectVersions', **kwargs):
             yield Version(self._api, e, None)
+            
+    def list_all_bugtrackers(self, **kwargs):
+        with self._api as api:
+            for e in api.page_data(f"/api/v1/bugtrackers", **kwargs):
+                yield Bugtracker(self._api, e, self)
 
     @property
     def api(self):
@@ -158,6 +163,20 @@ class Version(SSCObject):
         with self._api as api:
             return api.post(f"/api/v1/projectVersions/action/test", projectName=application_name,
                             projectVersionName=version_name)['data']['found']
+            
+    def get_bugtracker(self):
+        with self._api as api:
+            b = api.get(f"/api/v1/projectVersions/{self['id']}/bugtracker")['data'][0]['bugTracker']
+            if b is not None:
+                return Bugtracker(self._api, b, self)   
+            return b
+        
+    def set_bugtracker(self, bugtracker):
+        with self._api as api:
+            b = api.put_array(f"/api/v1/projectVersions/{self['id']}/bugtracker", [bugtracker])['data'][0]['bugTracker']
+            if b is not None:
+                return Bugtracker(self._api, b, self)   
+            return b
 
     #TODO: Refactor walrus operator to lambda for backwards compatibility with 3.8
     # def upload_artifact(self, file_path, process_block=False):
@@ -718,3 +737,5 @@ class LdapUser(SSCObject):
         with self._api as api:
             return LdapUser(self._api, api.post(f"/api/v1/ldapObjects", self)['data'], self)
 
+class Bugtracker(SSCObject):
+    pass
