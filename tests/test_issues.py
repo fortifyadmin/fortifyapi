@@ -1,5 +1,6 @@
 from unittest import TestCase
 from pprint import pprint
+from os import path
 from constants import Constants
 from fortifyapi import FortifySSCClient, Issue, CloneVersionTemplate
 
@@ -15,7 +16,10 @@ class TestIssues(TestCase):
         pv = client.projects.upsert(pname, 'default')
         self.assertIsNotNone(pv)
         try:
-            a = pv.upload_artifact('tests/resources/scan_20.1.fpr', process_block=True)
+            true_path = path.abspath(path.join(__file__, '../..', 'tests/resources/scan_20.1.fpr'))
+            print(true_path)
+
+            a = pv.upload_artifact(true_path, process_block=True)
             print(a)
             issues = list(pv.issues.list())
             self.assertEqual(7, len(issues), 'It either failed to process or someone modified the FPR')
@@ -38,7 +42,7 @@ class TestIssues(TestCase):
             for issue in issues:
                 print(issue)
                 print('')
-                self.assertEqual('Exploitable', issue['primaryTag'])
+                self.assertIsNotNone(issue['issueName'])
 
         finally:
             pv.parent.delete()

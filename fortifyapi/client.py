@@ -1,5 +1,6 @@
 from typing import Union, Tuple
 from datetime import date
+import time
 from socket import gethostname
 from .exceptions import *
 from .template import *
@@ -159,22 +160,23 @@ class Version(SSCObject):
             return api.post(f"/api/v1/projectVersions/action/test", projectName=application_name,
                             projectVersionName=version_name)['data']['found']
 
-    #TODO: Refactor walrus operator to lambda for backwards compatibility with 3.8
-    # def upload_artifact(self, file_path, process_block=False):
-    #     """
-    #     :param process_block: Block this method for Artifact processing
-    #     """
-    #     self.assert_is_instance()
-    #     with self._api as api:
-    #         with open(file_path, 'rb') as f:
-    #             robj = api._request('POST', f"/api/v1/projectVersions/{self['id']}/artifacts", files={'file': f})
-    #             art = Artifact(self._api, robj['data'], self)
-    #             if process_block:
-    #                 while a := art.get(art['id']):
-    #                     if a['status'] in ['PROCESS_COMPLETE', 'ERROR_PROCESSING', 'REQUIRE_AUTH']:
-    #                         return a
-    #                     time.sleep(1)
-    #             return art
+    def upload_artifact(self, file_path, process_block=False):
+        """
+        :param process_block: Block this method for Artifact processing
+        """
+        self.assert_is_instance()
+        with self._api as api:
+            with open(file_path, 'rb') as f:
+                robj = api._request('POST', f"/api/v1/projectVersions/{self['id']}/artifacts", files={'file': f})
+                art = Artifact(self._api, robj['data'], self)
+                if process_block:
+                    a = art.get(art['id'])
+                    while a:
+                        if a['status'] in ['PROCESS_COMPLETE', 'ERROR_PROCESSING', 'REQUIRE_AUTH']:
+                            return a
+                        time.sleep(1)
+                        a = art.get(art['id'])
+                return art
 
 
 class Project(SSCObject):
