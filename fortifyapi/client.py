@@ -279,7 +279,6 @@ class Project(SSCObject):
             if len(projects) == 0:
                 raise ParentNotFoundException(f"Somehow `{project_name}` exists yet we cannot query for it")
             project = projects[0]
-            print('we are upserting version')
             return self.create(project_name, version_name, project_id=project['id'], description=description,
                                active=active, committed=committed, issue_template_id=issue_template_id,
                                template=template)
@@ -628,6 +627,7 @@ class Rulepack(SSCObject):
                 for rules in api.page_data(f"/api/v1/updateRulepacks"):
                     yield Rulepack(self._api, rules, self.parent)
         except KeyError:
+            #TODO: remove print - why is this except here anyway? what key error?
             print(f"{rules['message']}")
 
 
