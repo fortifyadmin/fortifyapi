@@ -347,15 +347,12 @@ class CloudPool(SSCObject):
         with self._api as api:
             return api.delete(f"/api/v1/cloudpools/{self['uuid']}")
 
-    def assign(self, worker_uuids):
-        self.assert_is_instance()
-        if not isinstance(worker_uuids, list):
-            worker_uuids = [worker_uuids]
+    def assign(self, pool_uuid, worker_uuid):
         with self._api as api:
-            r = api.post(f"/api/v1/cloudpools/{self['uuid']}/workers/action/assign", {
-                "workerUuids": worker_uuids
+            r = api.post(f"/api/v1/cloudpools/{pool_uuid}/workers/action/assign", {
+                                                 "worker": worker_uuid
             })
-            #TODO: figure out what this returns
+            return CloudPool(self._api, r['data'])
 
     def jobs(self):
         self.assert_is_instance()
