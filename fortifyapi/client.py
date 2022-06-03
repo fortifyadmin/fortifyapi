@@ -386,9 +386,12 @@ class CloudJob(SSCObject):
         with self._api as api:
             return CloudJob(self._api, api.get(f"/api/v1/cloudjobs/{job_token}")['data'], self.parent)
 
-    def cancel(self):
+    def cancel(self, job_token):
         with self._api as api:
-            return api.post(f"/api/v1/cloudjobs/action/cancel", jobTokens=[self['jobToken']])
+            r = api.post(f"/api/v1/cloudjobs/P{job_token}/acion", {
+                "type": "cancel"
+            })
+            return CloudJob(self._api, r['data'])
 
 
 class Scan(SSCObject):
