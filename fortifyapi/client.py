@@ -391,21 +391,17 @@ class CloudJob(SSCObject):
         with self._api as api:
             return CloudJob(self._api, api.get(f"/api/v1/cloudjobs/{job_token}")['data'], self.parent)
 
-    def cancel(self, job_token):
+    def cancel(self, job_token: str):
+        """
+        Manage ScanCentral SAST jobs with state change to CANCEL.  Typical usage
+        would be of a large backlog of PENDING jobs, because no sensor was available or is in a bad state.
+        :param job_token: Scan Central Job Token assigned to the job
+        TODO: fix with return api.post(f"/api/v1/cloudjobs/{job_token}/acion", type="cancel")['data']['status'].  See
+        POST /ssc/api/v1/cloudjobs/1076964f-ec72-48e1-a897-6da9683a75df/action HTTP/1.1
+        {"type":"cancel"}
+        """
         with self._api as api:
-            r = api.post(f"/api/v1/cloudjobs/P{job_token}/acion", {
-                "type": "cancel"
-            })
-            return CloudJob(self._api, r['data']['status'])
-
-    # def cancel(self, job_token: str):
-    #     """
-    #     Manage ScanCentral SAST jobs with state change to CANCEL.  Typical usage
-    #     would be of a large backlog of PENDING jobs, because no sensor was available or is in a bad state.
-    #     :param job_token: Scan Central Job Token assigned to the job
-    #     """
-    #     with self._api as api:
-    #         return api.post(f"/api/v1/cloudjobs/{job_token}/acion", type="cancel")['data']['status']
+            return api.post (f"/api/v1/cloudjobs/action/cancel", jobTokens=[self['jobToken']])
 
 
 class Scan(SSCObject):

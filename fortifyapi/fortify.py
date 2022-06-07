@@ -379,6 +379,13 @@ class FortifyApi(object):
         url = '/api/v1/cloudjobs/' + scan_id
         return self._request('GET', url)
 
+    def set_cloudscan_cancel_job(self, scan_id):
+        url = '/api/v1/cloudjobs/' + scan_id + '/action'
+        data = (
+            {"type": "cancel"}
+        )
+        return self._request('POST', url, json=data)
+
     def get_file_token(self, purpose):
         """
         :param purpose: specify if the token is for file 'UPLOAD' or 'DOWNLOAD'
