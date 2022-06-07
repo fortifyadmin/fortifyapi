@@ -22,6 +22,7 @@ class FortifySSCClient:
         self.versions = Version(self._api, None, self)
         self.projects = Project(self._api, None, self)
         self.pools = CloudPool(self._api, None, self)
+        self.workers = CloudWorker(self._api, None, self)
         self.jobs = CloudJob(self._api, None, self)
         self.reports = Report(self._api, None, self)
         self.auth_entities = AuthEntity(self._api, None, self)
@@ -368,13 +369,17 @@ class CloudWorker(SSCObject):
             for e in api.page_data(f"/api/v1/cloudpools/disabledWorkers", **kwargs):
                 yield CloudWorker(self._api, e, self.parent)
 
+    def list(self, **kwargs):
+        with self._api as api:
+            for e in api.page_data(f"/api/v1/cloudworkers", **kwargs):
+                yield CloudWorker(self._api, e, self.parent)
+
 
 class CloudJob(SSCObject):
 
-    def list(self, **kwargs):
+    def list(self):
         with self._api as api:
-            for e in api.page_data(f"/api/v1/cloudjobs", **kwargs):
-                yield CloudJob(self._api, e, self.parent)
+            return CloudJob(self._api, api.get(f"/api/v1/cloudjobs")['data'], self.parent)
 
     def list_all(self, **kwargs):
         """ Helper function to just disable paging and get them all """
@@ -386,14 +391,22 @@ class CloudJob(SSCObject):
         with self._api as api:
             return CloudJob(self._api, api.get(f"/api/v1/cloudjobs/{job_token}")['data'], self.parent)
 
-    def cancel(self, job_token: str):
-        """
-        Manage ScanCentral SAST jobs with state change to CANCEL.  Typical usage
-        would be of a large backlog of PENDING jobs, because no sensor was available or is in a bad state.
-        :param job_token: Scan Central Job Token assigned to the job
-        """
+    def cancel(self, job_token):
         with self._api as api:
-            return api.post(f"/api/v1/cloudjobs/{job_token}/acion", type=cancel)['data']['status']
+            r = api.post(f"/api/v1/cloudjobs/P{job_token}/acion", {
+                "type": "cancel"
+            })
+            return CloudJob(self._api, r['data']['status'])
+
+    # def cancel(self, job_token: str):
+    #     """
+    #     Manage ScanCentral SAST jobs with state change to CANCEL.  Typical usage
+    #     would be of a large backlog of PENDING jobs, because no sensor was available or is in a bad state.
+    #     :param job_token: Scan Central Job Token assigned to the job
+    #     """
+    #     with self._api as api:
+    #         return api.post(f"/api/v1/cloudjobs/{job_token}/acion", type="cancel")['data']['status']
+
 
 class Scan(SSCObject):
 

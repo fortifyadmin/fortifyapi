@@ -45,6 +45,7 @@ class TestPools(TestCase):
         pprint(new_pool)
         self.assertIsNotNone(new_pool)
 
+        new_worker = client.pools.
         pools = list(client.pools.list(q=Query().query('name', pool_name)))
         self.assertIsNotNone(pools)
         self.assertEqual(1, len(pools))
@@ -64,5 +65,13 @@ class TestPools(TestCase):
         jobs = list(pools[0].jobs())
         self.assertIsNotNone(jobs)
 
+    def test_add_pools(self):
+        client = FortifySSCClient(self.c.url, self.c.token)
+        self.c.setup_proxy(client)
+        self.assertIsNotNone(pools)
+        self.assertEqual(1, len(pools))
+        pools = list(client.pools.list(q=Query().query('name', 'Default Pool')))
+
+    def test_add_pools(self):
 
 
