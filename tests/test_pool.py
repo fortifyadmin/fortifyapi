@@ -45,7 +45,6 @@ class TestPools(TestCase):
         pprint(new_pool)
         self.assertIsNotNone(new_pool)
 
-        new_worker = client.pools.
         pools = list(client.pools.list(q=Query().query('name', pool_name)))
         self.assertIsNotNone(pools)
         self.assertEqual(1, len(pools))
@@ -65,13 +64,21 @@ class TestPools(TestCase):
         jobs = list(pools[0].jobs())
         self.assertIsNotNone(jobs)
 
-    def test_add_pools(self):
+    def test_assign_worker(self):
+        pool_name = 'unit_test_pool_assign_worker_zz'
         client = FortifySSCClient(self.c.url, self.c.token)
         self.c.setup_proxy(client)
-        self.assertIsNotNone(pools)
-        self.assertEqual(1, len(pools))
-        pools = list(client.pools.list(q=Query().query('name', 'Default Pool')))
+        new_pool = client.pools.create(pool_name)
+        pprint(new_pool)
 
-    def test_add_pools(self):
+        # Assign a worker that is unassigned to a pool
+        unassigned_worker = [worker['uuid'] for worker in client.workers.list() if worker['cloudPool'] is None]
+        unit_test_pool = list(client.pools.list(q=Query().query('name', pool_name)))
+        pool_uuid = next(unit_test_pool)['uuid']
+        self.assertIsNotNone(pool_uuid)
+        client.pools.assign(worker_uuid=unassigned_worker, pool_uuid=pool_uuid)
+        worker = [worker['uuid'] for worker in client.workers.list() if worker['cloudPool'] == unit_test_pool]
+        self.assertNotEqual(len(worker), 0)
+
 
 
