@@ -1,17 +1,4 @@
 jobs:
-# https://discuss.circleci.com/t/increment-package-version-during-deploy/27282
-# put run under a job?
-bumpversion patch 
-git push -u origin release/vX.Y.Z
-git push --tags
-
- run:
-    name: bump package version
-    command: |
-       npm version prerelease --preid=alpha -m "Bumped version number to %s [ci skip]"
-       git push origin master
-       git push --tags
-
  build:
     executor: python/default
     steps:
