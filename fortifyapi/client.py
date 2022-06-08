@@ -349,9 +349,18 @@ class CloudPool(SSCObject):
             return api.delete(f"/api/v1/cloudpools/{self['uuid']}")
 
     def assign(self, pool_uuid, worker_uuid):
+        """
+        This endpoint is one of two that can be implemented, the other is a Post bulk request implementing the below uri,
+        "https://fortify.example.com/ssc/api/v1/cloudpools/{pool_uuid}/versions/action".
+        Either one will work
+        :param pool_uuid:
+        :param worker_uuid:
+        :return: ['status'] == success
+        """
         with self._api as api:
-            r = api.post(f"/api/v1/cloudpools/{pool_uuid}/workers/action/assign", {
-                                                 "worker": worker_uuid
+            r = api.post(f"/api/v1/cloudpools/{pool_uuid}/workers/action", {
+                "type": "assign",
+                "ids": [worker_uuid]
             })
             return CloudPool(self._api, r['data'])
 
@@ -377,9 +386,10 @@ class CloudWorker(SSCObject):
 
 class CloudJob(SSCObject):
 
-    def list(self):
+    def list(self, **kwargs):
         with self._api as api:
-            return CloudJob(self._api, api.get(f"/api/v1/cloudjobs")['data'], self.parent)
+            for e in api.page_data(f"/api/v1/cloudjobs", **kwargs):
+                yield CloudJob(self._api, e, self.parent)
 
     def list_all(self, **kwargs):
         """ Helper function to just disable paging and get them all """
