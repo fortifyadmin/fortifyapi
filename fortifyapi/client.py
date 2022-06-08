@@ -22,6 +22,7 @@ class FortifySSCClient:
         self.versions = Version(self._api, None, self)
         self.projects = Project(self._api, None, self)
         self.pools = CloudPool(self._api, None, self)
+        self.workers = CloudWorker(self._api, None, self)
         self.jobs = CloudJob(self._api, None, self)
         self.reports = Report(self._api, None, self)
         self.auth_entities = AuthEntity(self._api, None, self)
@@ -312,7 +313,6 @@ class Project(SSCObject):
                 raise ParentNotFoundException(f"Somehow `{project_name}` and version `{version_name}` exists yet we cannot query for it")
             return versions[0]
 
-
     def delete(self):
         # delete every version and project will delete
         self.assert_is_instance()
@@ -347,15 +347,21 @@ class CloudPool(SSCObject):
         with self._api as api:
             return api.delete(f"/api/v1/cloudpools/{self['uuid']}")
 
-    def assign(self, worker_uuids):
-        self.assert_is_instance()
-        if not isinstance(worker_uuids, list):
-            worker_uuids = [worker_uuids]
+    def assign(self, pool_uuid, worker_uuid):
+        """
+        This endpoint is one of two that can be implemented, the other is a Post bulk request
+        implementing "https://fortify.example.com/ssc/api/v1/cloudpools/{pool_uuid}/versions/action".
+        Either one will work
+        :param pool_uuid:
+        :param worker_uuid:
+        :return: ['status'] == success
+        """
         with self._api as api:
-            r = api.post(f"/api/v1/cloudpools/{self['uuid']}/workers/action/assign", {
-                "workerUuids": worker_uuids
+            r = api.post(f"/api/v1/cloudpools/{pool_uuid}/workers/action", {
+                "type": "assign",
+                "ids": [worker_uuid] if type(worker_uuid) is str else list(worker_uuid)
             })
-            #TODO: figure out what this returns
+            return CloudPool(self._api, r['data'])
 
     def jobs(self):
         self.assert_is_instance()
@@ -369,6 +375,11 @@ class CloudWorker(SSCObject):
     def list_unassigned(self, **kwargs):
         with self._api as api:
             for e in api.page_data(f"/api/v1/cloudpools/disabledWorkers", **kwargs):
+                yield CloudWorker(self._api, e, self.parent)
+
+    def list(self, **kwargs):
+        with self._api as api:
+            for e in api.page_data(f"/api/v1/cloudworkers", **kwargs):
                 yield CloudWorker(self._api, e, self.parent)
 
 
@@ -389,7 +400,15 @@ class CloudJob(SSCObject):
         with self._api as api:
             return CloudJob(self._api, api.get(f"/api/v1/cloudjobs/{job_token}")['data'], self.parent)
 
-    def cancel(self):
+    def cancel(self, job_token: str):
+        """
+        Manage ScanCentral SAST jobs with state change to CANCEL.  Typical usage
+        would be of a large backlog of PENDING jobs, because no sensor was available or is in a bad state.
+        :param job_token: Scan Central Job Token assigned to the job
+        TODO: fix with return api.post(f"/api/v1/cloudjobs/{job_token}/acion", type="cancel")['data']['status'].  See
+        POST /ssc/api/v1/cloudjobs/1076964f-ec72-48e1-a897-6da9683a75df/action HTTP/1.1
+        {"type":"cancel"}
+        """
         with self._api as api:
             return api.post(f"/api/v1/cloudjobs/action/cancel", jobTokens=[self['jobToken']])
 
