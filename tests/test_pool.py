@@ -64,15 +64,26 @@ class TestPools(TestCase):
         jobs = list(pools[0].jobs())
         self.assertIsNotNone(jobs)
 
-    def test_assign_worker(self):
-        pool_name = 'unit_test_pool_assign_worker_zz'
+    def test_unassign_worker(self):
+        unassigned_pool = '00000000-0000-0000-0000-000000000001'
         client = FortifySSCClient(self.c.url, self.c.token)
         self.c.setup_proxy(client)
-        new_pool = client.pools.create(pool_name)
+        worker = [worker['uuid'] for worker in client.workers.list() if worker['totalPhysicalMemory'] < 30000000000]
+        unassign = client.pools.assign(worker_uuid=worker[0], pool_uuid=unassigned_pool)
+        print(f"{unassign['status']} worker {worker[0]} has been unassigned to the unassigned pool {unassigned_pool}")
+        return worker[0]
+
+    def test_assign_worker(self):
+        pool_name = 'unit_test_pool_zz'
+        client = FortifySSCClient(self.c.url, self.c.token)
+        self.c.setup_proxy(client)
+        existing_pool = [pool['name'] for pool in client.pools.list()]
+        pool = [x for x in pool_name if x not in existing_pool]
+        new_pool = client.pools.create(pool)
         pprint(new_pool)
 
-        # Assign a worker that is unassigned to a pool
-        unassigned_worker = [worker['uuid'] for worker in client.workers.list() if worker['cloudPool'] is None]
+        unassigned_worker = [worker['uuid'] for worker in client.workers.list() if worker['cloudPool'] is
+                             "Unassigned Sensors Pool" == worker['cloudPool']['name']]
         unit_test_pool = list(client.pools.list(q=Query().query('name', pool_name)))
         pool_uuid = next(unit_test_pool)['uuid']
         self.assertIsNotNone(pool_uuid)
