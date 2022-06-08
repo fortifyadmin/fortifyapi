@@ -313,7 +313,6 @@ class Project(SSCObject):
                 raise ParentNotFoundException(f"Somehow `{project_name}` and version `{version_name}` exists yet we cannot query for it")
             return versions[0]
 
-
     def delete(self):
         # delete every version and project will delete
         self.assert_is_instance()
@@ -350,8 +349,8 @@ class CloudPool(SSCObject):
 
     def assign(self, pool_uuid, worker_uuid):
         """
-        This endpoint is one of two that can be implemented, the other is a Post bulk request implementing the below uri,
-        "https://fortify.example.com/ssc/api/v1/cloudpools/{pool_uuid}/versions/action".
+        This endpoint is one of two that can be implemented, the other is a Post bulk request
+        implementing "https://fortify.example.com/ssc/api/v1/cloudpools/{pool_uuid}/versions/action".
         Either one will work
         :param pool_uuid:
         :param worker_uuid:
@@ -360,7 +359,7 @@ class CloudPool(SSCObject):
         with self._api as api:
             r = api.post(f"/api/v1/cloudpools/{pool_uuid}/workers/action", {
                 "type": "assign",
-                "ids": [worker_uuid]
+                "ids": [worker_uuid] if type(worker_uuid) is str else list(worker_uuid)
             })
             return CloudPool(self._api, r['data'])
 
@@ -411,7 +410,7 @@ class CloudJob(SSCObject):
         {"type":"cancel"}
         """
         with self._api as api:
-            return api.post (f"/api/v1/cloudjobs/action/cancel", jobTokens=[self['jobToken']])
+            return api.post(f"/api/v1/cloudjobs/action/cancel", jobTokens=[self['jobToken']])
 
 
 class Scan(SSCObject):
