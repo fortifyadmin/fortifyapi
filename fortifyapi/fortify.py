@@ -54,7 +54,7 @@ class FortifyApi(object):
         :param development_strategy: Development Strategy GUID of Version
         :param accessibility: Accessibility GUID of Version
         :param business_risk_ranking: Business Risk Rank GUID of Version
-        :param custom_attributse: List of custom Attribute tuples that consist of attributeDefinitionId, values, & value. 
+        :param custom_attributse: List of custom Attribute tuples that consist of attributeDefinitionId, values, & value.
                                   Default is a empty string tuple.
         :return: A response object containing the newly created project and project version
         """
@@ -212,7 +212,7 @@ class FortifyApi(object):
         ]
         url = '/api/v1/projectVersions/' + str(version_id) + '/resultProcessingRules'
         return self._request('PUT', url, json=data)
-    
+
     def get_processing_rules(self, version_id):
         """
         :param version_id: Project Version ID from SSC to query
@@ -255,7 +255,7 @@ class FortifyApi(object):
 
         url = '/api/v1/projectVersions'
         return self._request('POST', url, json=data)
-    
+
     def delete_application_version(self, id):
         """
         Delete a given application or project version from SSC
@@ -264,7 +264,7 @@ class FortifyApi(object):
         """
         url = "/api/v1/projectVersions/" + str(id)
         return self._request('DELETE', url)
-    
+
     def download_artifact(self, artifact_id):
         """
         You might use this method like this, for example
@@ -458,7 +458,7 @@ class FortifyApi(object):
         """
         url = "/api/v1/projectVersions/" + version_id
         return self._request('GET', url)
-    
+
     def get_project_versions(self, project_name):
         """
         Implemented on SSC as project-version-controller to manage application versions.
@@ -474,7 +474,7 @@ class FortifyApi(object):
         """
         url = "/api/v1/projectVersions?q=name:\"" + version_name + "\""
         return self._request('GET', url)
-    
+
     def set_project_versions_test(self, project_name, project_version_name):
         """
         Check whether the specified application name is already defined in the system
@@ -805,7 +805,7 @@ class FortifyApi(object):
         :return:
         """
         data = [project_version_id]
-        url = '/api/v1/authEntities' + auth_entity_id + 'projectVersions'
+        url = '/api/v1/authEntities/' + auth_entity_id + '/projectVersions'
         return self._request('PUT', url, json=data)
 
     def set_auth_entity_to_version(self, auth_entity_id, project_version_id):
@@ -814,7 +814,7 @@ class FortifyApi(object):
         :return:
         """
         data = {"projectVersionIds": [str(project_version_id)]}
-        url = '/api/v1/authEntities' + auth_entity_id + 'projectVersions/action/assign'
+        url = '/api/v1/authEntities/' + auth_entity_id + '/projectVersions/action/assign'
         return self._request('POST', url, json=data)
 
     def get_all_auth_entity_of_project_version(self, project_version_id,
@@ -832,15 +832,15 @@ class FortifyApi(object):
         }
 
         return self._request('GET', url, params)
-    
+
     def get_all_bugtrackers(self):
         url = '/api/v1/bugtrackers'
         return self._request('GET', url)
-    
+
     def get_version_bugtracker(self,project_version_id):
         url = '/api/v1/projectVersions/'+str(project_version_id)+'/bugtracker'
         return self._request('GET', url)
-    
+
     def set_version_bugtracker(self,project_version_id,bugtracker_data):
         url = '/api/v1/projectVersions/'+str(project_version_id)+'/bugtracker'
         return self._request('PUT', url,json=bugtracker_data)
@@ -867,7 +867,7 @@ class FortifyApi(object):
                                             auth=(self.username, self.password), stream=stream)
             elif self.auth_type == 'token':
                 response = requests.request(method=method, url=self.host + url, params=params, files=files,
-                                            headers=headers, json=json, data=data, timeout=self.timeout, 
+                                            headers=headers, json=json, data=data, timeout=self.timeout,
                                             verify=self.verify_ssl, auth=FortifyTokenAuth(self.token), stream=stream)
             else:
                 response = requests.request(method=method, url=self.host + url, params=params, files=files,
