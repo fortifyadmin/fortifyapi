@@ -319,6 +319,39 @@ class Project(SSCObject):
         for v in self.versions.list():
             v.delete()
 
+    def rename_project(self, project_name, new_project_name, description="Renamed on " + str(date.today())
+               + " from " + gethostname()):
+        if self.test(application_name=project_name) is True:
+            q = Query().query("name", project_name)
+            projects = list(p['id'] for p in self.list(q=q))
+            project_id = projects[0]
+            with self._api as api:
+                response = api.put(f"/api/v1/projects/{project_id}", {
+                    'name': new_project_name,
+                    'description': description
+                })
+                return response['data']['name']
+
+    def rename_project_version(self, application_name, version_name, new_version_name,
+                               description="Renamed on " + str(date.today()) + " from " + gethostname()):
+        if self.test(application_name=application_name) is True:
+            q = Query().query("name", application_name)
+            projects = list(self.list(q=q))
+            project = projects[0]
+            versions = list(v['id'] for v in project.versions.list(q=Query().query("name", version_name)))
+            version_id = versions[0]
+            with self._api as api:
+                response = api.put(f"/api/v1/projectVersions/{version_id}", {
+                        "project": {
+                            "name": version_name
+                        },
+                    "name": new_version_name,
+                    "description": description,
+                    "active": True,
+                    "committed": True
+                })
+                return response['data']['name']
+
 
 class Engine(SSCObject):
     pass
