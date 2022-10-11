@@ -197,6 +197,13 @@ class Version(SSCObject):
                         time.sleep(1)
                 return art
 
+    def dashboard_versions(self):
+        """
+        Queries issue total that have already been triaged/audited as surpressed.  Does not query raw scan issue total.
+        """
+        with self._api as api:
+            return api.get(f"/api/v1/dashboardVersions?variables=ISSUES&start=0&limit=-1")['data']
+
 
 class Project(SSCObject):
 
