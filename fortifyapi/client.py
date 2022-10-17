@@ -28,6 +28,7 @@ class FortifySSCClient:
         self.auth_entities = AuthEntity(self._api, None, self)
         self.ldap_user = LdapUser(self._api, None, self)
         self.rulepack = Rulepack(self._api, None, self)
+        self.attributes = Attribute(self._api, None, self)
 
     def _list(self, endpoint, **kwargs):
         with self._api as api:
@@ -83,7 +84,6 @@ class Version(SSCObject):
     def initialize(self, template=DefaultVersionTemplate):
         """
         Called automatically when Version.create is called.
-
         :return:
         """
         with self._api as api:
@@ -462,7 +462,11 @@ class CloudJob(SSCObject):
         Manage ScanCentral SAST jobs with state change to CANCEL.  Typical usage
         would be of a large backlog of PENDING jobs, because no sensor was available or is in a bad state.
         :param job_token: Scan Central Job Token assigned to the job
-        TODO: fix with return api.post(f"/api/v1/cloudjobs/{job_token}/acion", type="cancel")['data']['status'].  See
+        TODO: fix with return api.post(f"/api/v1/cloudjobs/{job_token}/acion", type="cancel")['data']['status'].
+        something like this...
+        scan = list(self.list(q=Query().query("name", job_token)))[0]['token']
+        return api.post(f"/api/v1/cloudjobs/{scan}/action", {q=Query().query("type", "cancel")})['data']['status']
+        # See this
         POST /ssc/api/v1/cloudjobs/1076964f-ec72-48e1-a897-6da9683a75df/action HTTP/1.1
         {"type":"cancel"}
         """
@@ -603,7 +607,7 @@ class Attachment(SSCObject):
         f"/api/v1/projectVersions/{self.id}/attributes/{id}" # GET
         raise NotImplementedError()
 
-    def update(self):
+    def update(self, id):
         f"/api/v1/projectVersions/{self.parent.id}/attributes/{self.id}" # UPDATE
         raise NotImplementedError()
 
@@ -621,6 +625,8 @@ class Attachment(SSCObject):
 
 
 class Attribute(SSCObject):
+    def __init__(self, api, obj=None, parent=None):
+        super().__init__(api, obj, parent)
 
     def list(self, **kwargs):
         with self._api as api:
@@ -635,9 +641,26 @@ class Attribute(SSCObject):
         f"/api/v1/projectVersions/{self['id']}/attributes" # POST
         raise NotImplementedError()
 
-    def update(self):
-        f"/api/v1/projectVersions/{self['id']}/attributes"  # PUT
-        raise NotImplementedError()
+    def attribute_definition_id(self, attribute_name):
+        """
+        Value of ID is required typically for adding the custom template attribute when creating or modifying a new
+         project version.
+        :param attribute_name: Name of the templates attribute
+        return: attribute definition id from attribute name
+        """
+        with self._api as api:
+            return api.get(f"/api/v1/attributeDefinitions", {'q': Query().query("name", attribute_name)})['data'][0]['id']
+
+    def attribute_definition_options_list_guid(self, attribute_name, options_list_name):
+        """
+        Value of GUID is from the list of options provided with a given template attribute definition.  Used when adding
+        the custom template attribute for creating or modifying a new project version.
+        :param attribute_name: Name of the templates attribute, used in the attribute_definition_id method
+        :param options_list_name: Name of the options list to query for the GUID.
+        """
+        with self._api as api:
+            list = api.get(f"/api/v1/attributeDefinitions/{self.attribute_definition_id(attribute_name)}")['data']['options']
+            return [x['guid'] for x in list if x['name'] == options_list_name][0]
 
 
 class Report(SSCObject):
@@ -717,13 +740,9 @@ class Rulepack(SSCObject):
         raise NotImplementedError()
 
     def update(self):
-        try:
-            with self._api as api:
-                for rules in api.page_data(f"/api/v1/updateRulepacks"):
-                    yield Rulepack(self._api, rules, self.parent)
-        except KeyError:
-            #TODO: remove print - why is this except here anyway? what key error?
-            print(f"{rules['message']}")
+        with self._api as api:
+            for rules in api.page_data(f"/api/v1/updateRulepacks"):
+                yield Rulepack(self._api, rules, self.parent)
 
 
 class CustomTag(SSCObject):
