@@ -132,11 +132,6 @@ class Version(SSCObject):
         with self._api as api:
             return
 
-    def list_all(self, **kwargs):
-        with self._api as api:
-            for e in api.page_data(f"/api/v1/projectVersions", **kwargs):
-                return Version(self._api, e, self.parent)
-
     def delete(self):
         """ Delete the current version """
         self.assert_is_instance()
