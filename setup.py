@@ -2,13 +2,14 @@
 
 import os
 import sys
+from setuptools import setup
 
 from fortifyapi import __version__ as version
 
-try:
-    from setuptools import setup
-except ImportError:
-    from distutils.core import setup
+#try:
+#    from setuptools import setup
+#except ImportError:
+#    from distutils.core import setup
 
 with open('README.rst', 'r') as f:
     readme = f.read()

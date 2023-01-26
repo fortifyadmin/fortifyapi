@@ -10,14 +10,14 @@ from .api import FortifySSCAPI
 
 class FortifySSCClient:
 
-    def __init__(self, url: str, auth: Union[str, Tuple[str, str]], proxies=None, verify=True):
+    def __init__(self, url: str, auth: Union[str, Tuple[str, str]], proxies=None, verify=True, timeout=3600):
         """
         :param url: url to ssc, including the path. E.g. `https://fortifyssc/ssc`
         :param auth: Authentication, either a token str or a (username, password) tuple
         """
         self._url = url
         self._auth = auth
-        self._api = FortifySSCAPI(url, auth, proxies, verify)
+        self._api = FortifySSCAPI(url, auth, proxies, verify, timeout)
 
         self.versions = Version(self._api, None, self)
         self.projects = Project(self._api, None, self)
@@ -48,6 +48,15 @@ class FortifySSCClient:
         with self._api as api:
             for e in api.page_data(f"/api/v1/bugtrackers", **kwargs):
                 yield Bugtracker(self._api, e, self)
+
+    def list_all_dashboard_versions(self, **kwargs):
+        """
+        Queries issue total that have already been triaged/audited as surpressed.  Does not query raw scan issue total.
+        """
+        kwargs['limit'] = -1
+        for e in self._list('/api/v1/dashboardVersions?variables=ISSUES', **kwargs):
+            yield Version(self._api, e, None)
+
 
     @property
     def api(self):
@@ -127,10 +136,6 @@ class Version(SSCObject):
     def get(self, id):
         with self._api as api:
             return Version(self._api, api.get(f"/api/v1/projectVersions/{id}")['data'], self.parent)
-
-    def project_exist(self):
-        with self._api as api:
-            return
 
     def delete(self):
         """ Delete the current version """
@@ -365,11 +370,18 @@ class Project(SSCObject):
             })
             return response['data']['name']
 
-    def active(self, project_name, version_name, active):
+    def active(self, project_id, version_id, active):
+        """
+        Implementing dynamic project and version id methods is not efficient and will cause this method to fail.
+        For example self.version_id(project_name, version_name and self.project_id(project_name=project_name)
+        :param project_id: Project ID that is associated with the name
+        :param version_id: Version ID that is associated with the name
+        :param active: Boolean for False for inactive
+        """
         with self._api as api:
-            response = api.put(f"/api/v1/projectVersions/{self.version_id(project_name, version_name)}", {
+            response = api.put(f"/api/v1/projectVersions/{version_id}", {
                 "project": {
-                    "id": self.project_id(project_name=project_name)
+                    "id": project_id
                 },
                 "active": bool(active),
                 "committed": True
@@ -447,15 +459,15 @@ class CloudJob(SSCObject):
             for e in api.page_data(f"/api/v1/cloudjobs", **kwargs):
                 yield CloudJob(self._api, e, self.parent)
 
-    def list_all(self, **kwargs):
+    def get(self, job_token):
+        with self._api as api:
+            return CloudJob(self._api, api.get(f"/api/v1/cloudjobs/{job_token}")['data'], self.parent)
+
+    def list_all_scans(self, **kwargs):
         """ Helper function to just disable paging and get them all """
         kwargs['limit'] = -1
         for e in self.list(**kwargs):
             yield e
-
-    def get(self, job_token):
-        with self._api as api:
-            return CloudJob(self._api, api.get(f"/api/v1/cloudjobs/{job_token}")['data'], self.parent)
 
     def cancel(self, job_token: str):
         """
@@ -841,6 +853,7 @@ class LdapUser(SSCObject):
             self['roles'] = [{'id': 'developer'}]
         with self._api as api:
             return LdapUser(self._api, api.post(f"/api/v1/ldapObjects", self)['data'], self)
+
 
 class Bugtracker(SSCObject):
     pass
