@@ -1,6 +1,6 @@
 version: 2.1
 executors:
-  myproject:
+  fortifyapi:
     docker:
       - image: circleci/python:3.10.9
     working_directory: ~/repo
