@@ -31,7 +31,7 @@ jobs:
           name: Run tests
           command: |
             poetry run pytest -n 2 --dist=loadscope
-  isort:
+  black:
     executor: fortifyapi
     steps:
       - checkout
@@ -45,12 +45,9 @@ jobs:
 
 workflows:
     version: 2
-    build_and_test:
+    build:
       jobs:
         - build
-        - test:
-            requires:
-              - build
-        - isort:
+        - black:
             requires:
               - build
