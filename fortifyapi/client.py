@@ -1,13 +1,16 @@
-from typing import Union, Tuple
-from datetime import date
 import time
+from datetime import date
 from socket import gethostname
-from .exceptions import *
-from .template import *
-from .query import Query
+from typing import Tuple, Union
+
+import isort
+
 from .api import FortifySSCAPI
+from .exceptions import *
+from .query import Query
+from .template import *
 
-
+sorted_code = isort.code("import b\nimport a\n")
 class FortifySSCClient:
 
     def __init__(self, url: str, auth: Union[str, Tuple[str, str]], proxies=None, verify=True, timeout=3600):

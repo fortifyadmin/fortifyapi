@@ -1,7 +1,9 @@
+from typing import Any, Tuple, Union
+
 import requests
-from typing import Union, Tuple, Any
-from .exceptions import *
+
 from . import __version__
+from .exceptions import *
 
 
 class FortifySSCAPI:

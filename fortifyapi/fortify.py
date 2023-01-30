@@ -6,13 +6,15 @@ __contributors__ = ["Brandon Spruth"]
 __status__ = "Production"
 __license__ = "MIT"
 
-import urllib3
 import json
 import ntpath
+import urllib.parse
+
 import requests
 import requests.auth
 import requests.exceptions
-import urllib.parse
+import urllib3
+
 from . import __version__ as version
 
 

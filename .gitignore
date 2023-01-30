@@ -31,10 +31,7 @@ MANIFEST
 .webbreaker
 env/
 etc/
-venv27/
-venv36/
 venv/
-config.ini
 
 # PyInstaller
 *.manifest

@@ -31,11 +31,7 @@ dependency-install:
 	@echo "🚀 Installing dependencies for $(PACKAGE)"
 	$(SYSTEM_PYTHON) -m venv $(VENVDIR)
 	$(VENV)/python3 -m pip install --upgrade pip
-	$(VENV)/python3 -m pip install poetry build wheel twine deptry
-
-# use python environment
-#venv: clean dependency-install
-#	$(VENV)/activate
+	$(VENV)/python3 -m pip install poetry build wheel twine deptry isort black
 
 # Run code quality tools.
 .PHONY: check
@@ -46,6 +42,11 @@ check: dependency-install
 	@$(VENV)/poetry check
 	@echo "🚀 Checking for obsolete dependencies: Running deptry"
 	@$(VENV)/deptry $(WORKDIR)
+	#TODO: reformat files
+	#@echo "🚀 Running black"
+	#@$(VENV)/poetry run black --check $(WORKDIR)/$(PACKAGE)
+	@echo "🚀 Running isort"
+	@$(VENV)/isort --atomic $(WORKDIR)/$(PACKAGE)
 
 .PHONY: build
 build: clean check
