@@ -1,7 +1,12 @@
 version: 2.1
+executors:
+  fortifyapi:
+    docker:
+      - image: python:latest
+    working_directory: ~/repo
 jobs:
- build:
-    executor: python-latest
+  build:
+    executor: fortifyapi
     steps:
       - checkout
       - restore_cache:
@@ -10,26 +15,25 @@ jobs:
       - run:
           name: Install Dependencies
           command: |
-            poetry install
+            python3 -m pip install poetry build wheel twine && poetry build
       - save_cache:
           key: deps-{{ checksum "poetry.lock" }}
           paths:
             - /home/circleci/.cache/pypoetry/virtualenvs
- publish:
-    executor: python-latest
+  test:
+    executor: fortifyapi
     steps:
       - checkout
-      - python/install-packages:
-          pip-dependency-file: requirements.txt
-          pkg-manager: pip
-      - python/dist
+      - restore_cache:
+          keys:
+            - deps-{{ checksum "poetry.lock" }}
       - run:
+          name: Run tests
           command: |
-            sh scripts/circleci-pypi-publish.sh
-orbs:
-  poetry: talkiq/poetry@4.0.0
+            poetry run pytest -n 2 --dist=loadscope
 
 workflows:
-  main:
-    jobs:
-      - build
+    version: 2
+    build:
+      jobs:
+        - build
