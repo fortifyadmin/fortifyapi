@@ -1,12 +1,7 @@
 version: 2.1
-executors:
-  fortifyapi:
-    docker:
-      - image: cimg/python:3.10.9
-    working_directory: ~/repo
 jobs:
-  build:
-    executor: fortifyapi
+ build:
+    executor: python-latest
     steps:
       - checkout
       - restore_cache:
@@ -20,34 +15,21 @@ jobs:
           key: deps-{{ checksum "poetry.lock" }}
           paths:
             - /home/circleci/.cache/pypoetry/virtualenvs
-  test:
-    executor: fortifyapi
+ publish:
+    executor: python-latest
     steps:
       - checkout
-      - restore_cache:
-          keys:
-            - deps-{{ checksum "poetry.lock" }}
+      - python/install-packages:
+          pip-dependency-file: requirements.txt
+          pkg-manager: pip
+      - python/dist
       - run:
-          name: Run tests
           command: |
-            poetry run pytest -n 2 --dist=loadscope
-  black:
-    executor: fortifyapi
-    steps:
-      - checkout
-      - restore_cache:
-          keys:
-            - deps-{{ checksum "poetry.lock" }}
-      - run:
-          name: Check code formatting
-          command: |
-            poetry run isort --atomic .
+            sh scripts/circleci-pypi-publish.sh
+orbs:
+  poetry: talkiq/poetry@4.0.0
 
 workflows:
-    version: 2
-    build:
-      jobs:
-        - build
-        - black:
-            requires:
-              - build
+  main:
+    jobs:
+      - build
