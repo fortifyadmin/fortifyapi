@@ -1,23 +1,26 @@
-from typing import Union, Tuple
-from datetime import date
 import time
+from datetime import date
 from socket import gethostname
-from .exceptions import *
-from .template import *
-from .query import Query
+from typing import Tuple, Union
+
+import isort
+
 from .api import FortifySSCAPI
+from .exceptions import *
+from .query import Query
+from .template import *
 
-
+sorted_code = isort.code("import b\nimport a\n")
 class FortifySSCClient:
 
-    def __init__(self, url: str, auth: Union[str, Tuple[str, str]], proxies=None, verify=True):
+    def __init__(self, url: str, auth: Union[str, Tuple[str, str]], proxies=None, verify=True, timeout=3600):
         """
         :param url: url to ssc, including the path. E.g. `https://fortifyssc/ssc`
         :param auth: Authentication, either a token str or a (username, password) tuple
         """
         self._url = url
         self._auth = auth
-        self._api = FortifySSCAPI(url, auth, proxies, verify)
+        self._api = FortifySSCAPI(url, auth, proxies, verify, timeout)
 
         self.versions = Version(self._api, None, self)
         self.projects = Project(self._api, None, self)
@@ -28,6 +31,7 @@ class FortifySSCClient:
         self.auth_entities = AuthEntity(self._api, None, self)
         self.ldap_user = LdapUser(self._api, None, self)
         self.rulepack = Rulepack(self._api, None, self)
+        self.attributes = Attribute(self._api, None, self)
 
     def _list(self, endpoint, **kwargs):
         with self._api as api:
@@ -47,6 +51,15 @@ class FortifySSCClient:
         with self._api as api:
             for e in api.page_data(f"/api/v1/bugtrackers", **kwargs):
                 yield Bugtracker(self._api, e, self)
+
+    def list_all_dashboard_versions(self, **kwargs):
+        """
+        Queries issue total that have already been triaged/audited as surpressed.  Does not query raw scan issue total.
+        """
+        kwargs['limit'] = -1
+        for e in self._list('/api/v1/dashboardVersions?variables=ISSUES', **kwargs):
+            yield Version(self._api, e, None)
+
 
     @property
     def api(self):
@@ -83,7 +96,6 @@ class Version(SSCObject):
     def initialize(self, template=DefaultVersionTemplate):
         """
         Called automatically when Version.create is called.
-
         :return:
         """
         with self._api as api:
@@ -127,10 +139,6 @@ class Version(SSCObject):
     def get(self, id):
         with self._api as api:
             return Version(self._api, api.get(f"/api/v1/projectVersions/{id}")['data'], self.parent)
-
-    def project_exist(self):
-        with self._api as api:
-            return
 
     def delete(self):
         """ Delete the current version """
@@ -196,6 +204,13 @@ class Version(SSCObject):
                             return a
                         time.sleep(1)
                 return art
+
+    def dashboard_versions(self):
+        """
+        Queries issue total that have already been triaged/audited as surpressed.  Does not query raw scan issue total.
+        """
+        with self._api as api:
+            return api.get(f"/api/v1/dashboardVersions?variables=ISSUES&start=0&limit=-1")['data']
 
 
 class Project(SSCObject):
@@ -319,6 +334,63 @@ class Project(SSCObject):
         for v in self.versions.list():
             v.delete()
 
+    def project_id(self, project_name):
+        if self.test(application_name=project_name) is True:
+            projects = list(p['id'] for p in self.list(q=Query().query("name", project_name)))
+            project_id = projects[0]
+            return project_id
+
+    def version_id(self, project_name, version_name):
+        if self.versions.test(application_name=project_name, version_name=version_name) is True:
+            projects = list(self.list(q=Query().query("name", project_name)))
+            project = projects[0]
+            try:
+                versions = list(v['id'] for v in project.versions.list(q=Query().query("name", version_name).
+                                                                       query("active", bool(False))))
+                version_id = versions[0]
+            except IndexError:
+                versions = list(v['id'] for v in project.versions.list(q=Query().query("name", version_name)))
+                version_id = versions[0]
+            return version_id
+
+    def rename_project(self, project_name, new_project_name, description="Renamed on " + str(date.today())
+               + " from " + gethostname()):
+        with self._api as api:
+                response = api.put(f"/api/v1/projects/{self.project_id(project_name)}", {
+                    'name': new_project_name,
+                    'description': description
+                })
+                return response['data']['name']
+
+    def rename_project_version(self, project_name, version_name, new_version_name,
+                               description="Renamed on " + str(date.today()) + " from " + gethostname()):
+        with self._api as api:
+            response = api.put(f"/api/v1/projectVersions/{self.version_id(project_name, version_name)}", {
+                "name": new_version_name,
+                "description": description,
+                "active": True,
+                "committed": True
+            })
+            return response['data']['name']
+
+    def active(self, project_id, version_id, active):
+        """
+        Implementing dynamic project and version id methods is not efficient and will cause this method to fail.
+        For example self.version_id(project_name, version_name and self.project_id(project_name=project_name)
+        :param project_id: Project ID that is associated with the name
+        :param version_id: Version ID that is associated with the name
+        :param active: Boolean for False for inactive
+        """
+        with self._api as api:
+            response = api.put(f"/api/v1/projectVersions/{version_id}", {
+                "project": {
+                    "id": project_id
+                },
+                "active": bool(active),
+                "committed": True
+            })
+            return response['data']['name']
+
 
 class Engine(SSCObject):
     pass
@@ -390,22 +462,26 @@ class CloudJob(SSCObject):
             for e in api.page_data(f"/api/v1/cloudjobs", **kwargs):
                 yield CloudJob(self._api, e, self.parent)
 
-    def list_all(self, **kwargs):
+    def get(self, job_token):
+        with self._api as api:
+            return CloudJob(self._api, api.get(f"/api/v1/cloudjobs/{job_token}")['data'], self.parent)
+
+    def list_all_scans(self, **kwargs):
         """ Helper function to just disable paging and get them all """
         kwargs['limit'] = -1
         for e in self.list(**kwargs):
             yield e
-
-    def get(self, job_token):
-        with self._api as api:
-            return CloudJob(self._api, api.get(f"/api/v1/cloudjobs/{job_token}")['data'], self.parent)
 
     def cancel(self, job_token: str):
         """
         Manage ScanCentral SAST jobs with state change to CANCEL.  Typical usage
         would be of a large backlog of PENDING jobs, because no sensor was available or is in a bad state.
         :param job_token: Scan Central Job Token assigned to the job
-        TODO: fix with return api.post(f"/api/v1/cloudjobs/{job_token}/acion", type="cancel")['data']['status'].  See
+        TODO: fix with return api.post(f"/api/v1/cloudjobs/{job_token}/acion", type="cancel")['data']['status'].
+        something like this...
+        scan = list(self.list(q=Query().query("name", job_token)))[0]['token']
+        return api.post(f"/api/v1/cloudjobs/{scan}/action", {q=Query().query("type", "cancel")})['data']['status']
+        # See this
         POST /ssc/api/v1/cloudjobs/1076964f-ec72-48e1-a897-6da9683a75df/action HTTP/1.1
         {"type":"cancel"}
         """
@@ -546,7 +622,7 @@ class Attachment(SSCObject):
         f"/api/v1/projectVersions/{self.id}/attributes/{id}" # GET
         raise NotImplementedError()
 
-    def update(self):
+    def update(self, id):
         f"/api/v1/projectVersions/{self.parent.id}/attributes/{self.id}" # UPDATE
         raise NotImplementedError()
 
@@ -564,6 +640,8 @@ class Attachment(SSCObject):
 
 
 class Attribute(SSCObject):
+    def __init__(self, api, obj=None, parent=None):
+        super().__init__(api, obj, parent)
 
     def list(self, **kwargs):
         with self._api as api:
@@ -578,9 +656,26 @@ class Attribute(SSCObject):
         f"/api/v1/projectVersions/{self['id']}/attributes" # POST
         raise NotImplementedError()
 
-    def update(self):
-        f"/api/v1/projectVersions/{self['id']}/attributes"  # PUT
-        raise NotImplementedError()
+    def attribute_definition_id(self, attribute_name):
+        """
+        Value of ID is required typically for adding the custom template attribute when creating or modifying a new
+         project version.
+        :param attribute_name: Name of the templates attribute
+        return: attribute definition id from attribute name
+        """
+        with self._api as api:
+            return api.get(f"/api/v1/attributeDefinitions", {'q': Query().query("name", attribute_name)})['data'][0]['id']
+
+    def attribute_definition_options_list_guid(self, attribute_name, options_list_name):
+        """
+        Value of GUID is from the list of options provided with a given template attribute definition.  Used when adding
+        the custom template attribute for creating or modifying a new project version.
+        :param attribute_name: Name of the templates attribute, used in the attribute_definition_id method
+        :param options_list_name: Name of the options list to query for the GUID.
+        """
+        with self._api as api:
+            list = api.get(f"/api/v1/attributeDefinitions/{self.attribute_definition_id(attribute_name)}")['data']['options']
+            return [x['guid'] for x in list if x['name'] == options_list_name][0]
 
 
 class Report(SSCObject):
@@ -660,13 +755,9 @@ class Rulepack(SSCObject):
         raise NotImplementedError()
 
     def update(self):
-        try:
-            with self._api as api:
-                for rules in api.page_data(f"/api/v1/updateRulepacks"):
-                    yield Rulepack(self._api, rules, self.parent)
-        except KeyError:
-            #TODO: remove print - why is this except here anyway? what key error?
-            print(f"{rules['message']}")
+        with self._api as api:
+            for rules in api.page_data(f"/api/v1/updateRulepacks"):
+                yield Rulepack(self._api, rules, self.parent)
 
 
 class CustomTag(SSCObject):
@@ -765,6 +856,7 @@ class LdapUser(SSCObject):
             self['roles'] = [{'id': 'developer'}]
         with self._api as api:
             return LdapUser(self._api, api.post(f"/api/v1/ldapObjects", self)['data'], self)
+
 
 class Bugtracker(SSCObject):
     pass

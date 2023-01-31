@@ -1,7 +1,9 @@
+from typing import Any, Tuple, Union
+
 import requests
-from typing import Union, Tuple, Any
-from .exceptions import *
+
 from . import __version__
+from .exceptions import *
 
 
 class FortifySSCAPI:
@@ -9,7 +11,7 @@ class FortifySSCAPI:
     API object to talk to SSC via REST
     """
 
-    def __init__(self, url: str,  auth: Union[str, Tuple[str, str]], proxies=None, verify=True):
+    def __init__(self, url: str,  auth: Union[str, Tuple[str, str]], proxies=None, verify=True, timeout=3600):
         """
         :param url: url to ssc, including the path. E.g. `https://fortifyssc/ssc`
         :param auth: Authentication, either a token str or a (username, password) tuple
@@ -20,6 +22,7 @@ class FortifySSCAPI:
         self.__pass = None
         self.proxies = proxies
         self.verify = verify
+        self.timeout = timeout
 
         if isinstance(auth, str):
             self._token = auth
@@ -176,7 +179,10 @@ class FortifySSCAPI:
             kwargs['proxies'] = self.proxies
         if not self.verify:
             kwargs['verify'] = self.verify
+        if not self.timeout:
+            kwargs['timeout'] = self.timeout
         r = requests.request(method, f"{self.url}/{endpoint.lstrip('/')}", headers=headers, **kwargs)
+
         if 200 <= r.status_code >= 299:
             if r.status_code == 409:
                 raise ResourceNotFound(f"ResponseException - {r.status_code} - {r.text}")

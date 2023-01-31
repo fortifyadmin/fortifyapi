@@ -6,13 +6,15 @@ __contributors__ = ["Brandon Spruth"]
 __status__ = "Production"
 __license__ = "MIT"
 
-import urllib3
 import json
 import ntpath
+import urllib.parse
+
 import requests
 import requests.auth
 import requests.exceptions
-import urllib.parse
+import urllib3
+
 from . import __version__ as version
 
 
@@ -364,6 +366,17 @@ class FortifyApi(object):
         """
         url = '/api/v1/attributeDefinitions?start=0&limit=-1'
         return self._request('GET', url)
+
+    def put_attribute_template_definition(self, project_version_id, attribute_definition_id, guid):
+        """
+        :param project_version_id: Project Version ID
+        :param attribute_definition_id: Attribute Definition ID
+        :param guid: GUID from attribute definition options list
+        :return: A response object containing all attribute definitions
+        """
+        data = [{"values": [{"guid": str(guid)}], "attributeDefinitionId": attribute_definition_id }]
+        url = f'/api/v1/projectVersions/{project_version_id}/attributes'
+        return self._request('PUT', url, json=data)
 
     def get_cloudscan_jobs(self):
         """
