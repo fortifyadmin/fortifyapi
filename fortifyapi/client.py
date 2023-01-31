@@ -123,6 +123,11 @@ class Version(SSCObject):
                            template=CloneVersionTemplate(self['id']))
 
     def list(self, **kwargs):
+        """
+
+        :param kwargs:
+        :return:
+        """
         if not self.parent:
             raise ParentNotFoundException("No project parent found to query versions from")
         with self._api as api:
@@ -318,14 +323,16 @@ class Project(SSCObject):
                                active=active, committed=committed, issue_template_id=issue_template_id,
                                template=template)
         else:
+            # almost for sure an inactive project version if test passed
             q = Query().query("name", project_name)
             projects = list(self.list(q=q))
             if len(projects) == 0:
                 raise ParentNotFoundException(f"Somehow `{project_name}` exists yet we cannot query for it")
+            # we know the project exists ...
             project = projects[0]
-            versions = list(project.versions.list(q=Query().query("name", version_name)))
+            versions = list(project.versions.list(q=Query().query("name", version_name), includeInactive='true'))
             if len(versions) == 0:
-                raise ParentNotFoundException(f"Somehow `{project_name}` and version `{version_name}` exists yet we cannot query for it")
+                raise ParentNotFoundException(f"Somehow `{project_name}` and Version `{version_name}` exists but cannot be queried - did we actually include inactive?")
             return versions[0]
 
     def delete(self):
