@@ -109,6 +109,18 @@ class FortifySSCAPI:
         return self.post('/api/v1/bulk', requests=reqs)
 
     def page_data(self, endpoint, **kwargs):
+        """
+        The available query parameters:
+        
+        * q - field name + value pair that filters results, see Query
+        * fields - comma-delimited list of fields to include in response
+        * orderby - field name by which to order results
+        * includeInactive - default is false
+
+        :param endpoint: 
+        :param kwargs: 
+        :return: 
+        """
         if 'start' not in kwargs:
             kwargs['start'] = 0
         if 'limit' not in kwargs:

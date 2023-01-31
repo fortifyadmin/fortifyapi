@@ -111,6 +111,11 @@ class Version(SSCObject):
                            template=CloneVersionTemplate(self['id']))
 
     def list(self, **kwargs):
+        """
+
+        :param kwargs:
+        :return:
+        """
         if not self.parent:
             raise ParentNotFoundException("No project parent found to query versions from")
         with self._api as api:
