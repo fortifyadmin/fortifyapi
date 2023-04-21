@@ -27,7 +27,7 @@ class FortifySSCClient:
         self.reports = Report(self._api, None, self)
         self.auth_entities = AuthEntity(self._api, None, self)
         self.ldap_user = LdapUser(self._api, None, self)
-        self.rulepack = Rulepack(self._api, None, self)
+        self.rulepacks = Rulepack(self._api, None, self)
 
     def _list(self, endpoint, **kwargs):
         with self._api as api:
