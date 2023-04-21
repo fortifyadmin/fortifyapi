@@ -646,6 +646,10 @@ class Token(SSCObject):
 
 class Rulepack(SSCObject):
 
+    def get(self):
+        with self._api as api:
+            return Rulepack(self._api, api.get(f"/api/v1/coreRulepacks")['data'], self.parent)
+
     def list(self, **kwargs):
         with self._api as api:
             for e in api.page_data(f"/api/v1/coreRulepacks", **kwargs):
@@ -656,17 +660,13 @@ class Rulepack(SSCObject):
         raise NotImplementedError()
 
     def delete(self):
-        f"/api/v1/coreRulepacks/{self['id']}"  # DELETE
-        raise NotImplementedError()
+        with self._api as api:
+            return api.delete(f"/api/v1/coreRulepacks{self['id']}")
 
     def update(self):
-        try:
-            with self._api as api:
-                for rules in api.page_data(f"/api/v1/updateRulepacks"):
-                    yield Rulepack(self._api, rules, self.parent)
-        except KeyError:
-            #TODO: remove print - why is this except here anyway? what key error?
-            print(f"{rules['message']}")
+        with self._api as api:
+            for rules in api.page_data(f"/api/v1/updateRulepacks"):
+                yield Rulepack(self._api, rules, self.parent)
 
 
 class CustomTag(SSCObject):
