@@ -656,12 +656,14 @@ class Rulepack(SSCObject):
                 yield Rulepack(self._api, e, self.parent)
 
     def upload(self):
+        #TODO: need to implement this
         f"/api/v1/coreRulepacks" # POST
         raise NotImplementedError()
 
     def delete(self):
+        self.assert_is_instance()
         with self._api as api:
-            return api.delete(f"/api/v1/coreRulepacks{self['id']}")
+            return api.delete(f"/api/v1/coreRulepacks/{self['id']}")
 
     def update(self):
         with self._api as api:
