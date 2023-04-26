@@ -1,41 +1,65 @@
+# https://circleci.com/blog/publishing-a-python-package/
+version: 2.1
 jobs:
- build:
-    executor: python/default
+  build_test:
+    docker:
+      - image: cimg/python:3.11.0
     steps:
       - checkout
-      - python/install-packages:
-          pkg-manager: pip
-      - python/install-packages:
-          pip-dependency-file: requirements.txt
-          pkg-manager: pip
-      - python/install-packages:
-          args: pytest
-          pkg-manager: pip
-          pypi-cache: false
-
- publish:
-    executor: python/default
-    steps:
-      - checkout
-      - python/install-packages:
-          pip-dependency-file: requirements.txt
-          pkg-manager: pip      
-      - python/dist
       - run:
           command: |
-            sh scripts/circleci-pypi-publish.sh
-
-orbs:
-  python: circleci/python@1.2.0
-version: 2.1
-
+            python3 setup.py sdist bdist_wheel
+            sudo add-apt-repository universe -y
+            sudo apt-get update
+            sudo apt install -y python3-pip
+            sudo pip install pipenv
+            pipenv install pytest
+      - run:
+          command: |
+            pipenv run pytest
+  test_pypi_publish:
+    docker:
+      - image: cimg/python:3.11.0
+    steps:
+      - checkout
+      - run:
+          command: |
+            python3 setup.py sdist bdist_wheel
+            sudo add-apt-repository universe -y
+            sudo apt-get update
+            sudo apt install -y python3-pip
+            sudo pip install pipenv
+            pipenv install twine
+            pipenv run twine upload --repository testpypi dist/*
+  pypi_publish:
+    docker:
+      - image: cimg/python:3.11.0
+    steps:
+      - checkout
+      - run:
+          command: |
+            python3 setup.py sdist bdist_wheel
+            sudo add-apt-repository universe -y
+            sudo apt-get update
+            sudo apt install -y python3-pip
+            sudo pip install pipenv
+            pipenv install twine
+            pipenv run twine upload dist/*
 workflows:
-  main:
+  build_test_publish:
     jobs:
-      - build
-      - publish:
+      - build_test
+      - test_pypi_publish:
           requires:
-            - build
+            - build_test
           filters:
             branches:
-              only: master
+              only:
+                - develop
+      - pypi_publish:
+          requires:
+            - build_test
+          filters:
+            branches:
+              only:
+                - main

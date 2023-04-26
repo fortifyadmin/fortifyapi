@@ -655,10 +655,15 @@ class Rulepack(SSCObject):
             for e in api.page_data(f"/api/v1/coreRulepacks", **kwargs):
                 yield Rulepack(self._api, e, self.parent)
 
-    def upload(self):
-        #TODO: need to implement this
-        f"/api/v1/coreRulepacks" # POST
-        raise NotImplementedError()
+    #TODO: create test
+    def upload(self, filename):
+        self.assert_is_instance()
+        o = {
+            'filename': filename,
+            "name": "file"
+        }
+        with self._api as api:
+            return api.post(f"/api/v1/coreRulepacks", o)
 
     def delete(self):
         self.assert_is_instance()
