@@ -459,20 +459,22 @@ class FortifyApi(object):
         url = "/api/v1/projectVersions/" + version_id
         return self._request('GET', url)
 
-    def get_project_versions(self, project_name):
+    def get_project_versions(self, project_name=None, version_name=None):
         """
         Implemented on SSC as project-version-controller to manage application versions.
         A variety of associated resources are accessible via links.
+        :param project_name: SSC Application or Project name
+        :param version_name: SSC Application or Project version name
         :return: A response object with data containing project versions
         """
-        url = "/api/v1/projectVersions?limit=0&q=project.name:\"" + project_name + "\""
+        url = f"/api/v1/projectVersions?limit=0&q=project.name:{project_name}&q=name:{version_name}"
         return self._request('GET', url)
 
-    def get_version(self, version_name, project_name):
+    def get_version(self, version_name):
         """
         :return: A response object with data containing just a project's version
         """
-        url = "/api/v1/projectVersions?q=name:\"" + version_name + "\"&q=project.name:\"" + project_name + "\""
+        url = "/api/v1/projectVersions?q=name:\"" + version_name + "\""
         return self._request('GET', url)
 
     def set_project_versions_test(self, project_name, project_version_name):
