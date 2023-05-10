@@ -689,20 +689,15 @@ class FortifyApi(object):
                                                              'showshortfilenames=false'
         return self._request('GET', url)
 
-    def get_project_version_issue_details(self, instance_id, project_name, version_name, engine='SCA'):
+    def get_project_version_issue_details(self, issue_id):
         """
-        Returns trace analysis and other details of a given issue.  The issue ID can be found from the /issues or
+        Returns trace analysis and other details of a given issue. The issue ID can be found from the /issues or
         projectVersions endpoint.
-        :param instance_id:
-        :param project_name:
-        :param version_name:
-        :param engine:
+        :param issue_id:
         :return: full detail of a given issue
         """
-        url = '/api/v1/issueDetails?instanceId=' + str(instance_id) + '&projectName=' + str(project_name) + '&projectVersionName='\
-              + str(version_name) + '&engineType=' + str(engine)
-
-        return self._request('GET', url)
+        url = "/api/v1/issueDetails/" + str(issue_id)
+        return self._request("GET", url)
 
     def get_project_version_source_file(self, version_id, path):
         """
