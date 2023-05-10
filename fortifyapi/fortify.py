@@ -20,7 +20,7 @@ from . import __version__ as version
 
 class FortifyApi(object):
     def __init__(self, host, username=None, password=None, token=None, verify_ssl=True, timeout=60, user_agent=None,
-                 client_version='21.10'):
+                 client_version='22.20'):
 
         self.host = host
         self.username = username
