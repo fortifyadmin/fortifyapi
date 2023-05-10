@@ -468,11 +468,11 @@ class FortifyApi(object):
         url = "/api/v1/projectVersions?limit=0&q=project.name:\"" + project_name + "\""
         return self._request('GET', url)
 
-    def get_version(self, version_name):
+    def get_version(self, version_name, project_name):
         """
         :return: A response object with data containing just a project's version
         """
-        url = "/api/v1/projectVersions?q=name:\"" + version_name + "\""
+        url = "/api/v1/projectVersions?q=name:\"" + version_name + "\"&q=project.name:\"" + project_name + "\""
         return self._request('GET', url)
 
     def set_project_versions_test(self, project_name, project_version_name):
