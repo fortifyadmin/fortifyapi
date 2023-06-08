@@ -666,10 +666,10 @@ class FortifyApi(object):
         url = f'/api/v1/projectVersions/{version_id}/issues/action'
         return self._request('POST', url, json=data)
 
-    def get_assign_user(self, version_id, issue_id):
+    def get_project_version_issue(self, version_id, issue_id):
         """
-        Usage for this may be to garner the revision ID to increment for set_assign_user.  Other calls may
-        be to query for audit info on a given issue.
+        Manage issues in the application version. Usage for this may be to garner the revision ID to increment for
+        set_assign_user.  Other calls may be to query for audit info on a given issue.
 
         :version_id: Project Version ID integer typically found within a SSC Deeplink
         :issue_id: Issue integer that identifies the issue, this is NOT the UUID or SSC Instance ID
