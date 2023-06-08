@@ -645,6 +645,22 @@ class FortifyApi(object):
         url = "/api/v1/tokens"
         return self._request('POST', url, json=data)
 
+    def set_assign_user(self, version_id, issue_id, user, revision=0):
+        data = {
+                "type": "AUDIT_ISSUE",
+                "values": {
+                    "issues": [
+                        {
+                            "id": issue_id,
+                            "revision": revision
+                        }
+                    ],
+                    "user": user
+                }
+        }
+        url = f'/api/v1/projectVersions/{version_id}/issues/action'
+        return self._request('POST', url, json=data)
+
     def get_all_rulepacks(self):
         """
         List all rules on an SSC instance
