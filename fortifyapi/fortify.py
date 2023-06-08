@@ -646,6 +646,11 @@ class FortifyApi(object):
         return self._request('POST', url, json=data)
 
     def set_assign_user(self, version_id, issue_id, user, revision=0):
+        """
+        :version_id: Project Version ID integer typically found within a SSC Deeplink
+        :issue_id: Issue integer that identifies the issue, this is NOT the UUID or SSC Instance ID
+        :user: Registered Fortify SSC User name
+        """
         data = {
                 "type": "AUDIT_ISSUE",
                 "values": {
@@ -660,6 +665,17 @@ class FortifyApi(object):
         }
         url = f'/api/v1/projectVersions/{version_id}/issues/action'
         return self._request('POST', url, json=data)
+
+    def get_assign_user(self, version_id, issue_id):
+        """
+        Usage for this may be to garner the revision ID to increment for set_assign_user.  Other calls may
+        be to query for audit info on a given issue.
+
+        :version_id: Project Version ID integer typically found within a SSC Deeplink
+        :issue_id: Issue integer that identifies the issue, this is NOT the UUID or SSC Instance ID
+        """
+        url = f"/api/v1/projectVersions/{version_id}/issues/{issue_id}"
+        return self._request('GET', url)
 
     def get_all_rulepacks(self):
         """
