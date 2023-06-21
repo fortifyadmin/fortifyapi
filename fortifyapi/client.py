@@ -384,6 +384,54 @@ class CloudWorker(SSCObject):
 
 
 class CloudJob(SSCObject):
+    """
+    Object represents a Job (Scan Request)
+
+    Schema({
+        'jobToken': str,
+        '_href': str,
+        'cloudPool': object, #CloudPool,
+        'cloudWorker': object, #CloudWorker,
+        'jobCancellable': bool,
+        'jobDuration': int,  # seemingly milliseconds
+        'jobExpiryTime': Use(datetime.datetime.fromisoformat),
+        'jobFinishedTime': Use(datetime.datetime.fromisoformat),
+        'jobHasFpr': bool,
+        'jobHasLog': bool,
+        'jobQueuedTime': Use(datetime.datetime.fromisoformat),
+        'jobStartedTime': Use(datetime.datetime.fromisoformat),
+        'jobState': Or(
+            'INVALID',
+            'PENDING',
+            'IN_PROGRESS', # not sure when its this vs SCAN_RUNNING ...
+            'UPLOAD_QUEUED',
+            'UPLOAD_CANCELED',
+            'UPLOAD_COMPLETED',
+            'UPLOAD_FAILED',
+            'SCAN_FAULTED',
+            'SCAN_FAILED',
+            'SCAN_TIMEOUT',
+            'SCAN_COMPLETED',
+            'SCAN_CANCELED',
+            'SCAN_RUNNING',
+            'CANCELING'
+        ),
+        'jobToken': str,
+        'priority': int,
+        'projectId': int,
+        'projectName': str,
+        'pvId': int,
+        'pvName': str,
+        'queuedDuration': int,
+        'scaArgs': str,
+        'scaBuildId': str,
+        'scaVersion': str,  # the version of fortify used, e.g. 22.2.2.0004
+        'scanDuration': int,
+        'submitterEmail': Or(str, None),
+        'submitterIpAddress': str,
+        'submitterUserName': str
+    })
+    """
 
     def list(self, **kwargs):
         with self._api as api:
