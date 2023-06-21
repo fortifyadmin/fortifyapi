@@ -712,6 +712,43 @@ class FortifyApi(object):
         url = "/api/v1/portlets/issueaging"
         return self._request('GET', url)
 
+    def get_comments(self, issue_id):
+        """
+        :param issue_id: The Key value of issueId from the SSC Project Version that is being queried.
+        :return: Nested JSON data array of objects with seqNumber keys.  Including issueId, issueName seqNumber,
+        auditTime, comment, userName, projectVersionId, projectVersionName, projectName, issueInstanceId, issueEngineType.
+        """
+        url = f'/api/v1/issues/{issue_id}/comments'
+        return self._request('GET', url)
+
+    def get_reports(self):
+        """
+        Nested JSON data array of objects from past SSC BIRT reports created.
+        :return: Nested array of objects include id, name, type, typeDefaultText, generationDate, authEntity, status,
+            statusDefaultText, format, formatDefaultText, note, reportProjectsCount, isPublished
+        """
+        url = '/api/v1/reports'
+        return self._request('GET', url)
+
+    def create_report(self, name, note, format, report_definition_id, type):
+        """
+        Nested JSON objects and arrays.
+        TODO: The POST body is incomplete, add inputReportParameters embedded array, etc.
+        :param format: Available formats are PDF,
+        :param type: Available type are ISSUE,
+        :return: Nested JSON data array of objects, includes status and report id
+        """
+        data = {
+            "name": name,
+            "note": note,
+            "format": format,
+            "reportDefinitionId": report_definition_id,
+            "type": type
+        }
+        url = '/api/v1/reports'
+        return self._request('POST', url, json=data)
+
+
     def get_project_version_issues(self, version_id, orderby='friority'):
         """
         Issues per application/project version, with optional orderby query param
@@ -722,9 +759,8 @@ class FortifyApi(object):
                                                              'showhidden=false&' \
                                                              'showremoved=false&showsuppressed=false&' \
                                                              'showshortfilenames=false'
-        return self._request('GET', url)
 
-    def get_project_version_issue_details(self, instance_id, project_name, version_name, engine='SCA'):
+def get_project_version_issue_details(self, instance_id, project_name, version_name, engine='SCA'):
         """
         Returns trace analysis and other details of a given issue. The issue ID can be found from the /issues or
         projectVersions endpoint.
