@@ -712,6 +712,16 @@ class FortifyApi(object):
         url = "/api/v1/portlets/issueaging"
         return self._request('GET', url)
 
+    def get_comments(self, issue_id):
+        """
+        :param issue_id: The Key value of issueId from the SSC Project Version that is being queried.
+        :return: Nested JSON data array of objects with seqNumber keys.  Including issueId, issueName seqNumber,
+        auditTime, comment, userName, projectVersionId, projectVersionName, projectName, issueInstanceId, issueEngineType.
+        """
+        url = f'/api/v1/issues/{issue_id}/comments'
+        return self._request('GET', url)
+
+
     def get_project_version_issues(self, version_id, orderby='friority'):
         """
         Issues per application/project version, with optional orderby query param
@@ -722,9 +732,8 @@ class FortifyApi(object):
                                                              'showhidden=false&' \
                                                              'showremoved=false&showsuppressed=false&' \
                                                              'showshortfilenames=false'
-        return self._request('GET', url)
 
-    def get_project_version_issue_details(self, instance_id, project_name, version_name, engine='SCA'):
+def get_project_version_issue_details(self, instance_id, project_name, version_name, engine='SCA'):
         """
         Returns trace analysis and other details of a given issue. The issue ID can be found from the /issues or
         projectVersions endpoint.
