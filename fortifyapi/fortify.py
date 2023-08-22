@@ -915,6 +915,50 @@ class FortifyApi(object):
         url = '/api/v1/projectVersions/'+str(project_version_id)+'/bugtracker'
         return self._request('PUT', url,json=bugtracker_data)
 
+    def set_project_version_bugtracker_config(self, project_version_id, plugin_id, plugin_class_name, display_name,
+                                              instance_url, webhook_url, tablename, version):
+        data = {
+                "bugTracker": {
+                    "id": "ServiceNow",
+                    "pluginId": plugin_id,
+                    "pluginClassName": plugin_class_name,
+                    "shortDisplayName": display_name,
+                    "longDisplayName": display_name,
+                    "bugTrackerConfigs": [
+                        {
+                            "identifier": "(display-only)supportedVersions",
+                            "required": False,
+                            "displayLabel": "Supported Versions",
+                            "value": version,
+                            "description": "Bug Tracker versions supported by the plugin"
+                        },
+                        {
+                            "identifier": "instanceURL",
+                            "required": True,
+                            "displayLabel": "ServiceNow URL Prefix",
+                            "value": instance_url,
+                        },
+                        {
+                            "identifier": "webhookURL",
+                            "required": True,
+                            "displayLabel": "ServiceNow Webhook (REST Resource path)",
+                            "value": webhook_url,
+                        },
+                        {
+                            "identifier": "tableName",
+                            "required": True,
+                            "displayLabel": "ServiceNow Table Name (For Bug Links)",
+                            "value": tablename
+                        }
+                    ],
+                    "authenticationRequired": False
+                },
+                "clearAppVersionBugs": True
+        }
+
+        url = f'/api/v1/projectVersions/{str(project_version_id)}/bugtracker'
+        return self._request('PUT', url, json=data)
+
     def _request(self, method, url, params=None, files=None, json=None, data=None, headers=None, stream=False):
         """Common handler for all HTTP requests."""
         if not params:
