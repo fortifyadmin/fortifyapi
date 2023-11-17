@@ -647,23 +647,21 @@ class FortifyApi(object):
 
     def set_assign_user(self, version_id, issue_id, user, revision=0):
         """
+        This endpoint changed in Fortify SSC v23.1.2
         :version_id: Project Version ID integer typically found within a SSC Deeplink
         :issue_id: Issue integer that identifies the issue, this is NOT the UUID or SSC Instance ID
         :user: Registered Fortify SSC User name
         """
         data = {
-                "type": "AUDIT_ISSUE",
-                "values": {
-                    "issues": [
-                        {
-                            "id": issue_id,
-                            "revision": revision
-                        }
-                    ],
-                    "user": user
+            "issues": [
+                {
+                    "id": issue_id,
+                    "revision": revision
                 }
+            ],
+            "user": user
         }
-        url = f'/api/v1/projectVersions/{version_id}/issues/action'
+        url = f'/api/v1/projectVersions/{version_id}/issues/action/assignUser'
         return self._request('POST', url, json=data)
 
     def get_project_version_issue(self, version_id, issue_id):
