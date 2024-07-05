@@ -1,4 +1,6 @@
 import requests
+from requests.adapters import HTTPAdapter
+from urllib3.util import Retry
 from typing import Union, Tuple, Any
 from .exceptions import *
 from . import __version__
@@ -33,6 +35,19 @@ class FortifySSCAPI:
     def __enter__(self):
         if self._token is None:
             self._authorize()
+        self._session = requests.Session()
+        self._session.headers.update({
+            "Authorization": f"FortifyToken {self._token}",
+            "Accept": 'application/json',
+            "User-Agent": f"fortifyapi {__version__}"
+        })
+        # ssc is not reliable
+        retries = Retry(
+            total=5,
+            backoff_factor=0.1,
+            status_forcelist=[500, 502, 503, 504]
+        )
+        self._session.mount('https://', HTTPAdapter(max_retries=retries))
         return self
 
     def _authorize(self):
@@ -167,16 +182,11 @@ class FortifySSCAPI:
         return self._request('delete', endpoint, params=data)
 
     def _request(self, method: str, endpoint: str, **kwargs):
-        headers = {
-            "Authorization": f"FortifyToken {self._token}",
-            "Accept": 'application/json',
-            "User-Agent": f"fortifyapi {__version__}"
-        }
         if self.proxies:
             kwargs['proxies'] = self.proxies
         if not self.verify:
             kwargs['verify'] = self.verify
-        r = requests.request(method, f"{self.url}/{endpoint.lstrip('/')}", headers=headers, **kwargs)
+        r = self.session.request(method, f"{self.url}/{endpoint.lstrip('/')}", **kwargs)
         if 200 <= r.status_code >= 299:
             if r.status_code == 409:
                 raise ResourceNotFound(f"ResponseException - {r.status_code} - {r.text}")
