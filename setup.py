@@ -47,7 +47,6 @@ setup(
     zip_safe=True,
     test_suite='nose.collector',
     tests_require=['nose'],
-    requires=['requests', 'requests-toolbelt'],
     install_requires=['requests', 'requests-toolbelt'],
     keywords=['fortify', 'api', 'security', 'software', 'microfocus', 'ssc', 'sast'],
     classifiers=[
