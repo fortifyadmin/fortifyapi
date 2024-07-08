@@ -135,7 +135,7 @@ class FortifySSCAPI:
             yield e
 
         data_len = len(r['data'])
-        count = r['count']
+        count = r['count'] if 'count' in r else 0
 
         if (data_len + kwargs['start']) < count:
             kwargs['start'] = kwargs['start'] + kwargs['limit']
@@ -186,7 +186,7 @@ class FortifySSCAPI:
             kwargs['proxies'] = self.proxies
         if not self.verify:
             kwargs['verify'] = self.verify
-        r = self.session.request(method, f"{self.url}/{endpoint.lstrip('/')}", **kwargs)
+        r = self._session.request(method, f"{self.url}/{endpoint.lstrip('/')}", **kwargs)
         if 200 <= r.status_code >= 299:
             if r.status_code == 409:
                 raise ResourceNotFound(f"ResponseException - {r.status_code} - {r.text}")
