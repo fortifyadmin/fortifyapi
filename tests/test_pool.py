@@ -1,4 +1,4 @@
-from unittest import TestCase
+from unittest import TestCase, skip
 from pprint import pprint
 from constants import Constants
 from fortifyapi import FortifySSCClient, Query
@@ -64,6 +64,7 @@ class TestPools(TestCase):
         jobs = list(pools[0].jobs())
         self.assertIsNotNone(jobs)
 
+    @skip("Non-idempotent test, skipping")
     def test_unassign_worker(self):
         unassigned_pool = '00000000-0000-0000-0000-000000000001'
         client = FortifySSCClient(self.c.url, self.c.token)
@@ -73,22 +74,24 @@ class TestPools(TestCase):
         print(f"{unassign['status']} worker {worker[0]} has been unassigned to the unassigned pool {unassigned_pool}")
         return worker[0]
 
+    @skip("Flaky test never worked, corrected but skipped as we have no workers")
     def test_assign_worker(self):
         pool_name = 'unit_test_pool_zz'
         client = FortifySSCClient(self.c.url, self.c.token)
         self.c.setup_proxy(client)
         existing_pool = [pool['name'] for pool in client.pools.list()]
-        pool = [x for x in pool_name if x not in existing_pool]
-        new_pool = client.pools.create(pool)
-        pprint(new_pool)
+        print("existing pools", existing_pool)
+        if pool_name not in existing_pool:
+            client.pools.create(pool_name)
 
-        unassigned_worker = [worker['uuid'] for worker in client.workers.list() if worker['cloudPool'] is
-                             "Unassigned Sensors Pool" == worker['cloudPool']['name']]
-        unit_test_pool = list(client.pools.list(q=Query().query('name', pool_name)))
+        unassigned_worker = [worker['uuid'] for worker in client.workers.list() if worker['cloudPool']['name'] == 
+                             "Unassigned Sensors Pool"]
+        self.assertNotEqual(unassigned_worker, [], "Found no unassigned workers, cannot test assignment")
+        unit_test_pool = client.pools.list(q=Query().query('name', pool_name))
         pool_uuid = next(unit_test_pool)['uuid']
         self.assertIsNotNone(pool_uuid)
         client.pools.assign(worker_uuid=unassigned_worker, pool_uuid=pool_uuid)
-        worker = [worker['uuid'] for worker in client.workers.list() if worker['cloudPool'] == unit_test_pool]
+        worker = [worker['uuid'] for worker in client.workers.list() if worker['cloudPool']['name'] == unit_test_pool]
         self.assertNotEqual(len(worker), 0)
 
 

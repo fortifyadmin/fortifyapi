@@ -6,6 +6,8 @@ from .exceptions import *
 from .template import *
 from .query import Query
 from .api import FortifySSCAPI
+from requests_toolbelt import MultipartEncoder
+from os.path import basename
 
 
 class FortifySSCClient:
@@ -180,22 +182,31 @@ class Version(SSCObject):
                 return Bugtracker(self._api, b, self)   
             return b
 
-    def upload_artifact(self, file_path, process_block=False):
+    def upload_artifact(self, file_path, process_block=False, engine_type=None, timeout=None):
         """
+        Upload an artifact to an SSC version. Supports streaming as to allow extremely large artifact uploads.
+        
         :param process_block: Block this method for Artifact processing
+        :param engine_type: str To specify the parser to be used to process this artifact, see /ssc/html/ssc/admin/parserplugins
+        :param timeout: int Used if blocking, in how many seconds we should timeout and throw an Exception. Default is never.
         """
         self.assert_is_instance()
         with self._api as api:
-            with open(file_path, 'rb') as f:
-                robj = api._request('POST', f"/api/v1/projectVersions/{self['id']}/artifacts", files={'file': f})
-                art = Artifact(self._api, robj['data'], self)
-                if process_block:
-                    while True:
-                        a = art.get(art['id'])
-                        if a['status'] in ['PROCESS_COMPLETE', 'ERROR_PROCESSING', 'REQUIRE_AUTH']:
-                            return a
-                        time.sleep(1)
-                return art
+            query = dict(engineType=engine_type) if engine_type else {}
+            m = MultipartEncoder(fields={'file': (basename(file_path), open(file_path, 'rb'), 'application/zip')})
+            h = {'Content-Type': m.content_type}
+            robj = api._request('POST', f"/api/v1/projectVersions/{self['id']}/artifacts", data=m, params=query, headers=h)
+            art = Artifact(self._api, robj['data'], self)
+            now = time.time()
+            if process_block:
+                while True:
+                    a = art.get(art['id'])
+                    if a['status'] in ['PROCESS_COMPLETE', 'ERROR_PROCESSING', 'REQUIRE_AUTH']:
+                        return a
+                    time.sleep(1)
+                    if timeout and (time.time() - now) > timeout:
+                        raise TimeoutError("Upload artifact was blocking and exceeded the timeout")
+            return art
 
 
 class Project(SSCObject):
@@ -335,10 +346,11 @@ class CloudPool(SSCObject):
             for e in api.page_data(f"/api/v1/cloudpools", **kwargs):
                 yield CloudPool(self._api, e, self.parent)
 
-    def create(self, pool_name):
+    def create(self, pool_name, description=None):
         with self._api as api:
             r = api.post(f"/api/v1/cloudpools", {
-                "name": pool_name
+                "name": pool_name,
+                "description": description if description else '',
             })
             return CloudPool(self._api, r['data'])
 
