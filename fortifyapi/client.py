@@ -7,7 +7,7 @@ from .template import *
 from .query import Query
 from .api import FortifySSCAPI
 from requests_toolbelt import MultipartEncoder
-from os.path import basename
+from os.path import basename, exists
 
 
 class FortifySSCClient:
@@ -715,10 +715,17 @@ class Rulepack(SSCObject):
             for e in api.page_data(f"/api/v1/coreRulepacks", **kwargs):
                 yield Rulepack(self._api, e, self.parent)
 
-    def upload(self):
-        #TODO: need to implement this
-        f"/api/v1/coreRulepacks" # POST
-        raise NotImplementedError()
+    def upload(self, file_path):
+        """
+        :param file_path str: The path to the rulepack file to upload
+        :return: a Rulepack object
+        """
+        assert file_path, "file_path is required"
+        assert exists(file_path), "file_path does not exist"
+
+        with self._api as api:
+            with open(file_path, 'rb') as f:
+                return Rulepack(self._api, api._request('post', "/api/v1/coreRulepacks", files={'file': f})['data'], self.parent)
 
     def delete(self):
         self.assert_is_instance()
