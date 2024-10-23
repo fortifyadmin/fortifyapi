@@ -4,13 +4,13 @@ from constants import Constants
 from fortifyapi import FortifySSCClient
 
 
-class TestJobs(TestCase):
+class TestCloudJobs(TestCase):
     c = Constants()
 
     def test_job_list(self):
         client = FortifySSCClient(self.c.url, self.c.token)
         self.c.setup_proxy(client)
-        jobs = list(client.jobs.list())
+        jobs = list(client.cloudjobs.list())
         self.assertIsNotNone(jobs)
         self.assertNotEqual(len(jobs), 0)
 
@@ -28,7 +28,7 @@ class TestJobs(TestCase):
         return # one off test - TODO: actually write this
         client = FortifySSCClient(self.c.url, self.c.token)
         self.c.setup_proxy(client)
-        jobs = list(client.jobs.list())
+        jobs = list(client.cloudjobs.list())
         self.assertIsNotNone(jobs)
         self.assertNotEqual(len(jobs), 0)
 
