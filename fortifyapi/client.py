@@ -26,7 +26,7 @@ class FortifySSCClient:
         self.pools = CloudPool(self._api, None, self)
         self.workers = CloudWorker(self._api, None, self)
         self.cloudjobs = CloudJob(self._api, None, self)
-        self.sscjobs = Job(self._api, None, self)
+        self.sscjobs = SSCJob(self._api, None, self)
         self.reports = Report(self._api, None, self)
         self.auth_entities = AuthEntity(self._api, None, self)
         self.ldap_user = LdapUser(self._api, None, self)
@@ -96,14 +96,16 @@ class Version(SSCObject):
             data = template.generate(api=api, project_version_id=self['id'])
             return api.bulk_request(data)
 
-    def create(self, version_name, description="", active=True, committed=False, template=DefaultVersionTemplate):
+    def create(self, version_name, description="", active=True, committed=False, template=DefaultVersionTemplate,
+               dataRetentionPolicyOverride=False):
         """ Creates a version for the CURRENT project with required processing rules """
 
         self.assert_is_instance("Cannot create version for empty project - consider using `create_project_version`")
         assert self.parent['name'] is not None, "how is the parent name None?"
         return self.parent.create(self.parent['name'], version_name, description=description, active=active,
                                   committed=committed, project_id=self.parent['id'],
-                                  issue_template_id=self.parent['issueTemplateId'], template=template)
+                                  issue_template_id=self.parent['issueTemplateId'], template=template,
+                                  dataRetentionPolicyOverride=dataRetentionPolicyOverride)
 
     def copy(self, new_name: str, new_description: str = ""):
         """
@@ -112,6 +114,7 @@ class Version(SSCObject):
         """
         self.assert_is_instance()
         return self.create(new_name, new_description, active=self['active'], committed=self['committed'],
+                           dataRetentionPolicyOverride=self['dataRetentionPolicyOverride'],
                            template=CloneVersionTemplate(self['id']))
 
     def list(self, **kwargs):
@@ -254,7 +257,7 @@ class Project(SSCObject):
     def create(self, project_name, version_name, project_id=None, description="Created on " + str(date.today())
                + " from " + gethostname(), active=True,
                committed=False, issue_template_id='Prioritized-HighRisk-Project-Template',
-               template=DefaultVersionTemplate):
+               template=DefaultVersionTemplate, dataRetentionPolicyOverride=False):
         """
         You want to use upsert method for your implementation and NOT this function directly.  project.id is not
         validated which may not be a big deal, but may create problems in edge cases. See also SSC spec,
@@ -283,7 +286,8 @@ class Project(SSCObject):
                     'description': description,
                     'issueTemplateId': issue_template_id
                 },
-                'issueTemplateId': issue_template_id
+                'issueTemplateId': issue_template_id,
+                'dataRetentionPolicyOverride': dataRetentionPolicyOverride
             })
             p = Project(self._api, r['data']['project'], None) if 'project' in r['data'] else self
 
