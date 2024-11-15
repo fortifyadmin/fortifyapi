@@ -26,7 +26,7 @@ class FortifySSCClient:
         self.pools = CloudPool(self._api, None, self)
         self.workers = CloudWorker(self._api, None, self)
         self.cloudjobs = CloudJob(self._api, None, self)
-        self.jobs = Job(self._api, None, self)
+        self.sscjobs = Job(self._api, None, self)
         self.reports = Report(self._api, None, self)
         self.auth_entities = AuthEntity(self._api, None, self)
         self.ldap_user = LdapUser(self._api, None, self)
@@ -844,7 +844,7 @@ class Bugtracker(SSCObject):
     pass
 
 
-class Job(SSCObject):
+class SSCJob(SSCObject):
 
     def list(self, **kwargs):
         with self._api as api:
