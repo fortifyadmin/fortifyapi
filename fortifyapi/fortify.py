@@ -245,6 +245,7 @@ class FortifyApi(object):
                     description=description,
                     active=True,
                     committed=False,
+                    dataRetentionPolicyOverride=False,
                     project={
                         'name': application_name,
                         'description': description,
