@@ -26,7 +26,7 @@ class FortifySSCClient:
         self.pools = CloudPool(self._api, None, self)
         self.workers = CloudWorker(self._api, None, self)
         self.cloudjobs = CloudJob(self._api, None, self)
-        self.sscjobs = Job(self._api, None, self)
+        self.sscjobs = SSCJob(self._api, None, self)
         self.reports = Report(self._api, None, self)
         self.auth_entities = AuthEntity(self._api, None, self)
         self.ldap_user = LdapUser(self._api, None, self)
