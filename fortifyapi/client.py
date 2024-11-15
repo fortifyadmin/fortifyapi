@@ -25,11 +25,13 @@ class FortifySSCClient:
         self.projects = Project(self._api, None, self)
         self.pools = CloudPool(self._api, None, self)
         self.workers = CloudWorker(self._api, None, self)
-        self.jobs = CloudJob(self._api, None, self)
+        self.cloudjobs = CloudJob(self._api, None, self)
+        self.sscjobs = Job(self._api, None, self)
         self.reports = Report(self._api, None, self)
         self.auth_entities = AuthEntity(self._api, None, self)
         self.ldap_user = LdapUser(self._api, None, self)
         self.rulepacks = Rulepack(self._api, None, self)
+        self.filetoken = FileToken(self._api, None, self)
 
     def _list(self, endpoint, **kwargs):
         with self._api as api:
@@ -512,6 +514,15 @@ class Artifact(SSCObject):
         f"/api/v1/artifacts/action/purge" # POST
         raise NotImplementedError()
 
+    def download_url(self, includeSource=True):
+        self.assert_is_instance()
+        token = FileToken(self._api, None, self).create(purpose='DOWNLOAD')
+        return f"{self._api.url}/download/artifactDownload.html?mat={token['token']}&id={self['id']}&includeSource={includeSource}"
+
+    def download(self, includeSource=True):
+        with self._api as api:
+            return api.get(self.download_url(includeSource))
+
 
 class Issue(SSCObject):
     NOT_SET = -1
@@ -673,7 +684,7 @@ class FileToken(SSCObject):
         assert purpose in ['UPLOAD', 'DOWNLOAD'], "Unsupported purpose"
 
         with self._api as api:
-            return FileToken(self._api, api.post(f"/api/v1/fileTokens"), self.parent)
+            return FileToken(self._api, api.post(f"/api/v1/fileTokens", {'fileTokenType': purpose})['data'], self.parent)
 
     def delete(self):
         assert False, "Have not tested this"
@@ -835,5 +846,23 @@ class LdapUser(SSCObject):
         with self._api as api:
             return LdapUser(self._api, api.post(f"/api/v1/ldapObjects", self)['data'], self)
 
+
 class Bugtracker(SSCObject):
     pass
+
+
+class SSCJob(SSCObject):
+
+    def list(self, **kwargs):
+        with self._api as api:
+            for e in api.page_data("/api/v1/jobs", **kwargs):
+                yield Job(self._api, e, self.parent)
+
+    def get(self, jobName, **kwargs):
+        with self._api as api:
+            return api.get(f"/api/v1/jobs/{jobName}", **kwargs)
+
+    def update(self):
+        self.assert_is_instance()
+        with self._api as api:
+            return api.put(f"/api/v1/jobs/{self['jobName']}", self)
