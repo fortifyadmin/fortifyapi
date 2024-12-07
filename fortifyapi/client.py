@@ -314,7 +314,11 @@ class Project(SSCObject):
             q = Query().query("name", project_name)
             projects = list(self.list(q=q))
             if len(projects) == 0:
-                raise ParentNotFoundException(f"Somehow `{project_name}` exists yet we cannot query for it")
+                # sometimes the project exists but we can't query for it, this helps often enough
+                q = Query().query("name", f"*{project_name}*")
+                projects = list(self.list(q=q))
+                if len(projects) == 0:
+                    raise ParentNotFoundException(f"Somehow `{project_name}` exists yet we cannot query for it")
             project = projects[0]
             return self.create(project_name, version_name, project_id=project['id'], description=description,
                                active=active, committed=committed, issue_template_id=issue_template_id,
