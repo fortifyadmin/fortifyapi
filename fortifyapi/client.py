@@ -125,6 +125,12 @@ class Version(SSCObject):
                 p = Project(self._api, e['project'], None) if 'project' in e else self.parent
                 yield Version(self._api, e, p)
 
+    def search(self, **kwargs):
+        with self._api as api:
+            for e in api.page_data(f"/api/v1/projectVersions", **kwargs):
+                p = Project(self._api, e['project'], None) if 'project' in e else self.parent
+                yield Version(self._api, e, p)
+
     def list_auth_entities(self, **kwargs):
         self.assert_is_instance()
         with self._api as api:
@@ -298,6 +304,12 @@ class Project(SSCObject):
             p = Project(self._api, {}, None).get(p['id'])
             return p.versions.get(v['id'])
 
+    def search(self, project_name, version_name=None):
+        q = Query().query("project.name", pname)
+        if pver:
+            q = q.query("name", pver)
+        versions = next(self.versions.list(q=q), None)
+
     def upsert(self, project_name, version_name, description="Created on " + str(date.today())
                + " from " + gethostname(), active=True,
                committed=False, issue_template_id='Prioritized-HighRisk-Project-Template',
@@ -306,33 +318,39 @@ class Project(SSCObject):
         Implements the Project().create, but will test/ query if project exists, if not it will
         create both Project and version.  A project is dependent on at least one version associated to it.
         """
-        # test if project doesn't exist and create both project version
+        def _find_project_version(pname, pver=None):
+            q = Query().query("project.name", pname)
+            if pver:
+                q = q.query("name", pver)
+            version = next(self.versions.search(q=q), None)
+            if not version:
+                q = Query().query("project.name", f"*{pname}*")
+                if pver:
+                    q = q.query("name", f"*{pver}*")
+                version = next(self.versions.search(q=q), None)
+            if version:
+                return version
+            return None
+
         if self.test(application_name=project_name) is False:
             return self.create(project_name, version_name, description=description, active=active,
                                committed=committed, issue_template_id=issue_template_id, template=template)
         elif self.versions.test(project_name, version_name) is False:
-            q = Query().query("name", project_name)
-            projects = list(self.list(q=q))
-            if len(projects) == 0:
-                # sometimes the project exists but we can't query for it, this helps often enough
-                q = Query().query("name", f"*{project_name}*")
-                projects = list(self.list(q=q))
-                if len(projects) == 0:
-                    raise ParentNotFoundException(f"Somehow `{project_name}` exists yet we cannot query for it")
-            project = projects[0]
-            return self.create(project_name, version_name, project_id=project['id'], description=description,
+            # just need to make version, but use the projectVersions endpoint as it does not contain the unicode bug
+            project_version = _find_project_version(project_name)
+            if not project_version:
+                raise ParentNotFoundException(f"Somehow `{project_name}` exists yet we cannot query for it")
+            print(project_version)
+            return self.create(project_name, version_name, project_id=project_version['project']['id'], description=description,
                                active=active, committed=committed, issue_template_id=issue_template_id,
                                template=template)
         else:
-            q = Query().query("name", project_name)
-            projects = list(self.list(q=q))
-            if len(projects) == 0:
-                raise ParentNotFoundException(f"Somehow `{project_name}` exists yet we cannot query for it")
-            project = projects[0]
-            versions = list(project.versions.list(q=Query().query("name", version_name)))
-            if len(versions) == 0:
-                raise ParentNotFoundException(f"Somehow `{project_name}` and version `{version_name}` exists yet we cannot query for it")
-            return versions[0]
+            version = _find_project_version(project_name, version_name)
+            if version:
+                return version
+            else:
+                raise ParentNotFoundException(f"Somehow `{project_name}` - `{version_name}` exists yet we cannot query for it")
+
 
     def delete(self):
         # delete every version and project will delete
