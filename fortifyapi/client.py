@@ -304,12 +304,6 @@ class Project(SSCObject):
             p = Project(self._api, {}, None).get(p['id'])
             return p.versions.get(v['id'])
 
-    def search(self, project_name, version_name=None):
-        q = Query().query("project.name", pname)
-        if pver:
-            q = q.query("name", pver)
-        versions = next(self.versions.list(q=q), None)
-
     def upsert(self, project_name, version_name, description="Created on " + str(date.today())
                + " from " + gethostname(), active=True,
                committed=False, issue_template_id='Prioritized-HighRisk-Project-Template',
