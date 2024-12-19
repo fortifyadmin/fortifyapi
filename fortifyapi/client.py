@@ -229,6 +229,17 @@ class Version(SSCObject):
         with self._api as api:
             return api.get(self.download_url(includeSource))
 
+    def purge(self, purgeBefore, projectVersionIds=None):
+        """
+        :param purgeBefore: should be a date time, likely `pv['currentState']['lastFprUploadDate']`
+        :param projectVersionIds: list of project version ids to purge, else will use the current project version
+        """
+        if projectVersionIds is None:
+            self.assert_is_instance()
+            projectVersionIds = [self['id']]
+        with self._api as api:
+            return api.post('/api/v1/projectVersions/action/purge', {'projectVersionIds': projectVersionIds, 'purgeBefore': purgeBefore})
+
 
 class Project(SSCObject):
 
@@ -538,10 +549,6 @@ class Artifact(SSCObject):
 
     def approve(self):
         f"/api/v1/artifacts/action/approve" # POST
-        raise NotImplementedError()
-
-    def purge(self):
-        f"/api/v1/artifacts/action/purge" # POST
         raise NotImplementedError()
 
     def download_url(self, includeSource=True):
