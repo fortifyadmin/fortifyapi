@@ -219,6 +219,16 @@ class Version(SSCObject):
                         raise TimeoutError("Upload artifact was blocking and exceeded the timeout")
             return art
 
+    def download_url(self, includeSource=True):
+        """Download the current version as fpr, with all triage state"""
+        self.assert_is_instance()
+        token = FileToken(self._api, None, self).create(purpose='DOWNLOAD')
+        return f"{self._api.url}/download/currentStateFprDownload.html?mat={token['token']}&id={self['id']}&clientVersion=24.2.0.0186&includeSource={includeSource}"
+
+    def download(self, includeSource=True):
+        with self._api as api:
+            return api.get(self.download_url(includeSource))
+
 
 class Project(SSCObject):
 
@@ -535,6 +545,7 @@ class Artifact(SSCObject):
         raise NotImplementedError()
 
     def download_url(self, includeSource=True):
+        """Note, this downloads a given artifact directly, it will not contain any project version state"""
         self.assert_is_instance()
         token = FileToken(self._api, None, self).create(purpose='DOWNLOAD')
         return f"{self._api.url}/download/artifactDownload.html?mat={token['token']}&id={self['id']}&includeSource={includeSource}"
@@ -886,3 +897,7 @@ class SSCJob(SSCObject):
         self.assert_is_instance()
         with self._api as api:
             return api.put(f"/api/v1/jobs/{self['jobName']}", self)
+
+    def list_active_jobs(self):
+        """convinence method to list all active jobs"""
+        yield from self.list(q='state:RUNNING+or+state:PREPARED', orderby='-createTime')
