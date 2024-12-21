@@ -52,6 +52,10 @@ class FortifySSCClient:
             for e in api.page_data(f"/api/v1/bugtrackers", **kwargs):
                 yield Bugtracker(self._api, e, self)
 
+    def license(self):
+        with self._api as api:
+            return api.get('/api/v1/license')
+
     @property
     def api(self):
         return self._api
@@ -894,7 +898,7 @@ class SSCJob(SSCObject):
     def list(self, **kwargs):
         with self._api as api:
             for e in api.page_data("/api/v1/jobs", **kwargs):
-                yield Job(self._api, e, self.parent)
+                yield SSCJob(self._api, e, self.parent)
 
     def get(self, jobName, **kwargs):
         with self._api as api:
