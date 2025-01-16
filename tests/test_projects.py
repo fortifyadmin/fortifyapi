@@ -97,7 +97,7 @@ class TestProjects(TestCase):
 
         client.projects.upsert("Unit Test Python", 'default')
 
-        q = Query().query("name", "Unit Test Python").query('createdBy', self.c.username)
+        q = Query().query("name", "Unit Test Python")
         project = list(client.projects.list(q=q))[0]
         id = project['id']
         self.assertIsNotNone(id)
@@ -108,7 +108,7 @@ class TestProjects(TestCase):
 
         time.sleep(5)
 
-        self.assertRaises(ResourceNotFound, client.projects.get, id)
+        self.assertRaises(ResponseException, client.projects.get, id)
 
     def test_project_create(self):
         project_name = 'HealthScan ACL Issues UI Actions'

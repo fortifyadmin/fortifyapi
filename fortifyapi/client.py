@@ -43,6 +43,7 @@ class FortifySSCClient:
             yield Engine(self._api, e, self)
 
     def list_all_project_versions(self, **kwargs):
+        # todo: remove duplicate, same as Version#search
         kwargs['limit'] = -1
         for e in self._list('/api/v1/projectVersions', **kwargs):
             yield Version(self._api, e, None)
@@ -51,6 +52,10 @@ class FortifySSCClient:
         with self._api as api:
             for e in api.page_data(f"/api/v1/bugtrackers", **kwargs):
                 yield Bugtracker(self._api, e, self)
+
+    def license(self):
+        with self._api as api:
+            return api.get('/api/v1/license')
 
     @property
     def api(self):
@@ -218,6 +223,27 @@ class Version(SSCObject):
                     if timeout and (time.time() - now) > timeout:
                         raise TimeoutError("Upload artifact was blocking and exceeded the timeout")
             return art
+
+    def download_url(self, includeSource=True):
+        """Download the current version as fpr, with all triage state"""
+        self.assert_is_instance()
+        token = FileToken(self._api, None, self).create(purpose='DOWNLOAD')
+        return f"{self._api.url}/download/currentStateFprDownload.html?mat={token['token']}&id={self['id']}&clientVersion=24.2.0.0186&includeSource={includeSource}"
+
+    def download(self, includeSource=True):
+        with self._api as api:
+            return api.get(self.download_url(includeSource))
+
+    def purge(self, purgeBefore, projectVersionIds=None):
+        """
+        :param purgeBefore: should be a date time, likely `pv['currentState']['lastFprUploadDate']`
+        :param projectVersionIds: list of project version ids to purge, else will use the current project version
+        """
+        if projectVersionIds is None:
+            self.assert_is_instance()
+            projectVersionIds = [self['id']]
+        with self._api as api:
+            return api.post('/api/v1/projectVersions/action/purge', {'projectVersionIds': projectVersionIds, 'purgeBefore': purgeBefore})
 
 
 class Project(SSCObject):
@@ -530,11 +556,8 @@ class Artifact(SSCObject):
         f"/api/v1/artifacts/action/approve" # POST
         raise NotImplementedError()
 
-    def purge(self):
-        f"/api/v1/artifacts/action/purge" # POST
-        raise NotImplementedError()
-
     def download_url(self, includeSource=True):
+        """Note, this downloads a given artifact directly, it will not contain any project version state"""
         self.assert_is_instance()
         token = FileToken(self._api, None, self).create(purpose='DOWNLOAD')
         return f"{self._api.url}/download/artifactDownload.html?mat={token['token']}&id={self['id']}&includeSource={includeSource}"
@@ -876,7 +899,7 @@ class SSCJob(SSCObject):
     def list(self, **kwargs):
         with self._api as api:
             for e in api.page_data("/api/v1/jobs", **kwargs):
-                yield Job(self._api, e, self.parent)
+                yield SSCJob(self._api, e, self.parent)
 
     def get(self, jobName, **kwargs):
         with self._api as api:
@@ -886,3 +909,7 @@ class SSCJob(SSCObject):
         self.assert_is_instance()
         with self._api as api:
             return api.put(f"/api/v1/jobs/{self['jobName']}", self)
+
+    def list_active_jobs(self):
+        """convinence method to list all active jobs"""
+        yield from self.list(q='state:RUNNING+or+state:PREPARED', orderby='-createTime')
