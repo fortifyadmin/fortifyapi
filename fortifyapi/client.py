@@ -526,13 +526,16 @@ class Issue(SSCObject):
         o = dict(user=user)
         f"/api/v1/projectVersions/{self.parent['id']}/issues/action/assignUser"
 
+    def audit(self,  issue_id, analysis, comment="via automation", user=None, suppressed=False, tags=None, revision=0):
     def audit(self,  analysis, comment="via automation", user=None, suppressed=False, tags=None):
         """
+        :param issue_id: integer that is included in a ssc issue url deeplink, this is NOT the IID or Instance ID
         :param analysis: zero to four
         :param comment: Issue comment
         :param user: Username to assign, else None
         :param suppressed: Will suppress the issue
         :param tags: ?
+        :param revision: integer that is incremented on each post that is made to theh audit.  All issues start at 0
         """
         self.assert_is_instance()
         assert analysis in [
@@ -571,8 +574,8 @@ class Issue(SSCObject):
         self.assert_is_instance()
         o = {
             'issues': [{
-                'id': self['id'],
-                'revision': self['revision']
+                'id': issue_id,
+                'revision': revision
             }],
             "suppressed": suppressed
         }
