@@ -527,7 +527,6 @@ class Issue(SSCObject):
         f"/api/v1/projectVersions/{self.parent['id']}/issues/action/assignUser"
 
     def audit(self,  issue_id, analysis, comment="via automation", user=None, suppressed=False, tags=None, revision=0):
-    def audit(self,  analysis, comment="via automation", user=None, suppressed=False, tags=None):
         """
         :param issue_id: integer that is included in a ssc issue url deeplink, this is NOT the IID or Instance ID
         :param analysis: zero to four
