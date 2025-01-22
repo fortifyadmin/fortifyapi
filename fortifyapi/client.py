@@ -652,7 +652,7 @@ class Issue(SSCObject):
         self.assert_is_instance()
         o = {
             'issues': [{
-                'id': issue_id,
+                'id': id,
                 'revision': revision
             }],
             "suppressed": suppressed
