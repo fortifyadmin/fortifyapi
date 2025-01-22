@@ -245,6 +245,7 @@ class FortifyApi(object):
                     description=description,
                     active=True,
                     committed=False,
+                    dataRetentionPolicyOverride=False,
                     project={
                         'name': application_name,
                         'description': description,
@@ -652,17 +653,17 @@ class FortifyApi(object):
         :issue_id: Issue integer that identifies the issue, this is NOT the UUID or SSC Instance ID
         :user: Registered Fortify SSC User name
         """
-        data = {
-            "issues": [
-                {
-                    "id": issue_id,
-                    "revision": revision
-                }
-            ],
-            "user": user
+        json = {
+            "type":"AUDIT_ISSUE",
+            "values":{
+                "issues":[
+                    {"id":issue_id,"revision":revision}
+                ],
+                "user": user
+            }
         }
-        url = f'/api/v1/projectVersions/{version_id}/issues/action/assignUser'
-        return self._request('POST', url, json=data)
+        url = f'/api/v1/projectVersions/{version_id}/issues/action'
+        return self._request('POST', url, json=json)
 
     def get_project_version_issue(self, version_id, issue_id):
         """

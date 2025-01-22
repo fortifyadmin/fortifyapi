@@ -1,4 +1,4 @@
-from unittest import TestCase
+from unittest import TestCase, SkipTest
 from constants import Constants
 from fortifyapi import FortifySSCClient
 
@@ -28,4 +28,11 @@ class TestRulepack(TestCase):
         rulepack = rulepacks[0]
         rulepack_guid = rulepack['rulepackGUID']
         self.assertIsNotNone(rulepack_guid)
+
+    @SkipTest # skip as i dont have a valid empty rulepack
+    def test_rulepack_upload(self):
+        client = FortifySSCClient(self.c.url, self.c.token)
+        self.c.setup_proxy(client)
+        rp = client.rulepacks.upload('tests/resources/noprulepack.xml')
+        self.assertIsNotNone(rp)
 

@@ -30,6 +30,7 @@ if sys.argv[-1] == 'publish-test':
 if sys.argv[-1] == 'publish':
     os.system('python setup.py sdist bdist_wheel')
     sys.exit()
+    
 
 setup(
     name='fortifyapi',
@@ -46,8 +47,7 @@ setup(
     zip_safe=True,
     test_suite='nose.collector',
     tests_require=['nose'],
-    requires=['requests'],
-    install_requires=['requests'],
+    install_requires=['requests', 'requests-toolbelt'],
     keywords=['fortify', 'api', 'security', 'software', 'microfocus', 'ssc', 'sast'],
     classifiers=[
         'Development Status :: 4 - Beta',

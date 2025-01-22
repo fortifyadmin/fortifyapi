@@ -6,6 +6,8 @@ from .exceptions import *
 from .template import *
 from .query import Query
 from .api import FortifySSCAPI
+from requests_toolbelt import MultipartEncoder
+from os.path import basename, exists
 
 
 class FortifySSCClient:
@@ -23,11 +25,13 @@ class FortifySSCClient:
         self.projects = Project(self._api, None, self)
         self.pools = CloudPool(self._api, None, self)
         self.workers = CloudWorker(self._api, None, self)
-        self.jobs = CloudJob(self._api, None, self)
+        self.cloudjobs = CloudJob(self._api, None, self)
+        self.sscjobs = SSCJob(self._api, None, self)
         self.reports = Report(self._api, None, self)
         self.auth_entities = AuthEntity(self._api, None, self)
         self.ldap_user = LdapUser(self._api, None, self)
         self.rulepacks = Rulepack(self._api, None, self)
+        self.filetoken = FileToken(self._api, None, self)
 
     def _list(self, endpoint, **kwargs):
         with self._api as api:
@@ -39,6 +43,7 @@ class FortifySSCClient:
             yield Engine(self._api, e, self)
 
     def list_all_project_versions(self, **kwargs):
+        # todo: remove duplicate, same as Version#search
         kwargs['limit'] = -1
         for e in self._list('/api/v1/projectVersions', **kwargs):
             yield Version(self._api, e, None)
@@ -47,6 +52,10 @@ class FortifySSCClient:
         with self._api as api:
             for e in api.page_data(f"/api/v1/bugtrackers", **kwargs):
                 yield Bugtracker(self._api, e, self)
+
+    def license(self):
+        with self._api as api:
+            return api.get('/api/v1/license')
 
     @property
     def api(self):
@@ -92,14 +101,16 @@ class Version(SSCObject):
             data = template.generate(api=api, project_version_id=self['id'])
             return api.bulk_request(data)
 
-    def create(self, version_name, description="", active=True, committed=False, template=DefaultVersionTemplate):
+    def create(self, version_name, description="", active=True, committed=False, template=DefaultVersionTemplate,
+               dataRetentionPolicyOverride=False):
         """ Creates a version for the CURRENT project with required processing rules """
 
         self.assert_is_instance("Cannot create version for empty project - consider using `create_project_version`")
         assert self.parent['name'] is not None, "how is the parent name None?"
         return self.parent.create(self.parent['name'], version_name, description=description, active=active,
                                   committed=committed, project_id=self.parent['id'],
-                                  issue_template_id=self.parent['issueTemplateId'], template=template)
+                                  issue_template_id=self.parent['issueTemplateId'], template=template,
+                                  dataRetentionPolicyOverride=dataRetentionPolicyOverride)
 
     def copy(self, new_name: str, new_description: str = ""):
         """
@@ -108,6 +119,7 @@ class Version(SSCObject):
         """
         self.assert_is_instance()
         return self.create(new_name, new_description, active=self['active'], committed=self['committed'],
+                           dataRetentionPolicyOverride=self['dataRetentionPolicyOverride'],
                            template=CloneVersionTemplate(self['id']))
 
     def list(self, **kwargs):
@@ -115,6 +127,12 @@ class Version(SSCObject):
             raise ParentNotFoundException("No project parent found to query versions from")
         with self._api as api:
             for e in api.page_data(f"/api/v1/projects/{self.parent['id']}/versions", **kwargs):
+                p = Project(self._api, e['project'], None) if 'project' in e else self.parent
+                yield Version(self._api, e, p)
+
+    def search(self, **kwargs):
+        with self._api as api:
+            for e in api.page_data(f"/api/v1/projectVersions", **kwargs):
                 p = Project(self._api, e['project'], None) if 'project' in e else self.parent
                 yield Version(self._api, e, p)
 
@@ -180,22 +198,52 @@ class Version(SSCObject):
                 return Bugtracker(self._api, b, self)   
             return b
 
-    def upload_artifact(self, file_path, process_block=False):
+    def upload_artifact(self, file_path, process_block=False, engine_type=None, timeout=None):
         """
+        Upload an artifact to an SSC version. Supports streaming as to allow extremely large artifact uploads.
+        
         :param process_block: Block this method for Artifact processing
+        :param engine_type: str To specify the parser to be used to process this artifact, see /ssc/html/ssc/admin/parserplugins
+        :param timeout: int Used if blocking, in how many seconds we should timeout and throw an Exception. Default is never.
         """
         self.assert_is_instance()
         with self._api as api:
-            with open(file_path, 'rb') as f:
-                robj = api._request('POST', f"/api/v1/projectVersions/{self['id']}/artifacts", files={'file': f})
-                art = Artifact(self._api, robj['data'], self)
-                if process_block:
-                    while True:
-                        a = art.get(art['id'])
-                        if a['status'] in ['PROCESS_COMPLETE', 'ERROR_PROCESSING', 'REQUIRE_AUTH']:
-                            return a
-                        time.sleep(1)
-                return art
+            query = dict(engineType=engine_type) if engine_type else {}
+            m = MultipartEncoder(fields={'file': (basename(file_path), open(file_path, 'rb'), 'application/zip')})
+            h = {'Content-Type': m.content_type}
+            robj = api._request('POST', f"/api/v1/projectVersions/{self['id']}/artifacts", data=m, params=query, headers=h)
+            art = Artifact(self._api, robj['data'], self)
+            now = time.time()
+            if process_block:
+                while True:
+                    a = art.get(art['id'])
+                    if a['status'] in ['PROCESS_COMPLETE', 'ERROR_PROCESSING', 'REQUIRE_AUTH']:
+                        return a
+                    time.sleep(1)
+                    if timeout and (time.time() - now) > timeout:
+                        raise TimeoutError("Upload artifact was blocking and exceeded the timeout")
+            return art
+
+    def download_url(self, includeSource=True):
+        """Download the current version as fpr, with all triage state"""
+        self.assert_is_instance()
+        token = FileToken(self._api, None, self).create(purpose='DOWNLOAD')
+        return f"{self._api.url}/download/currentStateFprDownload.html?mat={token['token']}&id={self['id']}&clientVersion=24.2.0.0186&includeSource={includeSource}"
+
+    def download(self, includeSource=True):
+        with self._api as api:
+            return api.get(self.download_url(includeSource))
+
+    def purge(self, purgeBefore, projectVersionIds=None):
+        """
+        :param purgeBefore: should be a date time, likely `pv['currentState']['lastFprUploadDate']`
+        :param projectVersionIds: list of project version ids to purge, else will use the current project version
+        """
+        if projectVersionIds is None:
+            self.assert_is_instance()
+            projectVersionIds = [self['id']]
+        with self._api as api:
+            return api.post('/api/v1/projectVersions/action/purge', {'projectVersionIds': projectVersionIds, 'purgeBefore': purgeBefore})
 
 
 class Project(SSCObject):
@@ -241,7 +289,7 @@ class Project(SSCObject):
     def create(self, project_name, version_name, project_id=None, description="Created on " + str(date.today())
                + " from " + gethostname(), active=True,
                committed=False, issue_template_id='Prioritized-HighRisk-Project-Template',
-               template=DefaultVersionTemplate):
+               template=DefaultVersionTemplate, dataRetentionPolicyOverride=False):
         """
         You want to use upsert method for your implementation and NOT this function directly.  project.id is not
         validated which may not be a big deal, but may create problems in edge cases. See also SSC spec,
@@ -270,7 +318,8 @@ class Project(SSCObject):
                     'description': description,
                     'issueTemplateId': issue_template_id
                 },
-                'issueTemplateId': issue_template_id
+                'issueTemplateId': issue_template_id,
+                'dataRetentionPolicyOverride': dataRetentionPolicyOverride
             })
             p = Project(self._api, r['data']['project'], None) if 'project' in r['data'] else self
 
@@ -289,29 +338,39 @@ class Project(SSCObject):
         Implements the Project().create, but will test/ query if project exists, if not it will
         create both Project and version.  A project is dependent on at least one version associated to it.
         """
-        # test if project doesn't exist and create both project version
+        def _find_project_version(pname, pver=None):
+            q = Query().query("project.name", pname)
+            if pver:
+                q = q.query("name", pver)
+            version = next(self.versions.search(q=q), None)
+            if not version:
+                q = Query().query("project.name", f"*{pname}*")
+                if pver:
+                    q = q.query("name", f"*{pver}*")
+                version = next(self.versions.search(q=q), None)
+            if version:
+                return version
+            return None
+
         if self.test(application_name=project_name) is False:
             return self.create(project_name, version_name, description=description, active=active,
                                committed=committed, issue_template_id=issue_template_id, template=template)
         elif self.versions.test(project_name, version_name) is False:
-            q = Query().query("name", project_name)
-            projects = list(self.list(q=q))
-            if len(projects) == 0:
+            # just need to make version, but use the projectVersions endpoint as it does not contain the unicode bug
+            project_version = _find_project_version(project_name)
+            if not project_version:
                 raise ParentNotFoundException(f"Somehow `{project_name}` exists yet we cannot query for it")
-            project = projects[0]
-            return self.create(project_name, version_name, project_id=project['id'], description=description,
+            print(project_version)
+            return self.create(project_name, version_name, project_id=project_version['project']['id'], description=description,
                                active=active, committed=committed, issue_template_id=issue_template_id,
                                template=template)
         else:
-            q = Query().query("name", project_name)
-            projects = list(self.list(q=q))
-            if len(projects) == 0:
-                raise ParentNotFoundException(f"Somehow `{project_name}` exists yet we cannot query for it")
-            project = projects[0]
-            versions = list(project.versions.list(q=Query().query("name", version_name)))
-            if len(versions) == 0:
-                raise ParentNotFoundException(f"Somehow `{project_name}` and version `{version_name}` exists yet we cannot query for it")
-            return versions[0]
+            version = _find_project_version(project_name, version_name)
+            if version:
+                return version
+            else:
+                raise ParentNotFoundException(f"Somehow `{project_name}` - `{version_name}` exists yet we cannot query for it")
+
 
     def delete(self):
         # delete every version and project will delete
@@ -335,10 +394,11 @@ class CloudPool(SSCObject):
             for e in api.page_data(f"/api/v1/cloudpools", **kwargs):
                 yield CloudPool(self._api, e, self.parent)
 
-    def create(self, pool_name):
+    def create(self, pool_name, description=None):
         with self._api as api:
             r = api.post(f"/api/v1/cloudpools", {
-                "name": pool_name
+                "name": pool_name,
+                "description": description if description else '',
             })
             return CloudPool(self._api, r['data'])
 
@@ -496,9 +556,15 @@ class Artifact(SSCObject):
         f"/api/v1/artifacts/action/approve" # POST
         raise NotImplementedError()
 
-    def purge(self):
-        f"/api/v1/artifacts/action/purge" # POST
-        raise NotImplementedError()
+    def download_url(self, includeSource=True):
+        """Note, this downloads a given artifact directly, it will not contain any project version state"""
+        self.assert_is_instance()
+        token = FileToken(self._api, None, self).create(purpose='DOWNLOAD')
+        return f"{self._api.url}/download/artifactDownload.html?mat={token['token']}&id={self['id']}&includeSource={includeSource}"
+
+    def download(self, includeSource=True):
+        with self._api as api:
+            return api.get(self.download_url(includeSource))
 
 
 class Issue(SSCObject):
@@ -676,7 +742,7 @@ class FileToken(SSCObject):
         assert purpose in ['UPLOAD', 'DOWNLOAD'], "Unsupported purpose"
 
         with self._api as api:
-            return FileToken(self._api, api.post(f"/api/v1/fileTokens"), self.parent)
+            return FileToken(self._api, api.post(f"/api/v1/fileTokens", {'fileTokenType': purpose})['data'], self.parent)
 
     def delete(self):
         assert False, "Have not tested this"
@@ -718,10 +784,17 @@ class Rulepack(SSCObject):
             for e in api.page_data(f"/api/v1/coreRulepacks", **kwargs):
                 yield Rulepack(self._api, e, self.parent)
 
-    def upload(self):
-        #TODO: need to implement this
-        f"/api/v1/coreRulepacks" # POST
-        raise NotImplementedError()
+    def upload(self, file_path):
+        """
+        :param file_path str: The path to the rulepack file to upload
+        :return: a Rulepack object
+        """
+        assert file_path, "file_path is required"
+        assert exists(file_path), "file_path does not exist"
+
+        with self._api as api:
+            with open(file_path, 'rb') as f:
+                return Rulepack(self._api, api._request('post', "/api/v1/coreRulepacks", files={'file': f})['data'], self.parent)
 
     def delete(self):
         self.assert_is_instance()
@@ -831,5 +904,27 @@ class LdapUser(SSCObject):
         with self._api as api:
             return LdapUser(self._api, api.post(f"/api/v1/ldapObjects", self)['data'], self)
 
+
 class Bugtracker(SSCObject):
     pass
+
+
+class SSCJob(SSCObject):
+
+    def list(self, **kwargs):
+        with self._api as api:
+            for e in api.page_data("/api/v1/jobs", **kwargs):
+                yield SSCJob(self._api, e, self.parent)
+
+    def get(self, jobName, **kwargs):
+        with self._api as api:
+            return api.get(f"/api/v1/jobs/{jobName}", **kwargs)
+
+    def update(self):
+        self.assert_is_instance()
+        with self._api as api:
+            return api.put(f"/api/v1/jobs/{self['jobName']}", self)
+
+    def list_active_jobs(self):
+        """convinence method to list all active jobs"""
+        yield from self.list(q='state:RUNNING+or+state:PREPARED', orderby='-createTime')
