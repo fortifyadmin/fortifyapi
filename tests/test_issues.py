@@ -29,8 +29,16 @@ class TestIssues(TestCase):
             issues = list(pv.issues.list())
             print(issues)
             self.assertEqual(7, len(issues), 'It either failed to process or someone modified the FPR')
-            for issue in issues:
-                issue.audit(Issue.EXPLOITABLE, "Testing Audit")
+            # use existing revision int
+            revision = list(pv.issues.list())[0]['revision']
+            # take first of 7 issues
+            issue = [issue for issue in list(pv.issues.list())][0]['id']
+            # audit issue
+            audit = pv.issues.audit(id=issue, analysis=Issue.EXPLOITABLE, user="admin", revision=revision, comment="Testing Audit")
+            # get boolean for comment
+            comment = [issue for issue in list(pv.issues.list())][0]['hasComments']
+            self.assertEqual(audit['data']['data'][0]['id'], issue)
+            self.assertTrue(comment)
 
             issues = list(pv.issues.list())
             self.assertEqual(7, len(issues), 'It either failed to process or someone modified the FPR')
