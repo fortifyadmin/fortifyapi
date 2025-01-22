@@ -518,23 +518,34 @@ class Issue(SSCObject):
         with self._api as api:
             return Issue(self._api, api.get(f"/api/v1/projectVersions/{self.parent['id']}/issues/{id}")['data'], self.parent)
 
-    def assign(self, user):
+    def assign(self, id, user, revision=0):
         """
-        :param user: user id?
+        :param id: Integer of the issue, typically a 3 to 7 digit int NOT the IID
+        :param user: user login id
+        :param revision: Begins with 0 and incremented with each assignment
         """
         self.assert_is_instance()
-        o = dict(user=user)
-        f"/api/v1/projectVersions/{self.parent['id']}/issues/action/assignUser"
+        o = {
+            "issues": [
+                {
+                    "id": id,
+                    "revision": revision
+                }
+            ],
+            "user": user
+        }
+        with self._api as api:
+            return api.post(f"/api/v1/projectVersions/{self.parent['id']}/issues/action/assignUser", o)
 
-    def audit(self,  issue_id, analysis, comment="via automation", user=None, suppressed=False, tags=None, revision=0):
+    def audit(self, id, analysis, user, comment="via automation", suppressed=False, tags=None, revision=0):
         """
-        :param issue_id: integer that is included in a ssc issue url deeplink, this is NOT the IID or Instance ID
+        :param id: Integer of the issue, typically a 3 to 7 digit int NOT the IID
         :param analysis: zero to four
-        :param comment: Issue comment
         :param user: Username to assign, else None
-        :param suppressed: Will suppress the issue
-        :param tags: ?
-        :param revision: integer that is incremented on each post that is made to theh audit.  All issues start at 0
+        :param comment: Issue comment
+        :param suppressed: Boolean True will suppress the issue
+        :param tags: Custom analysis tag
+        :param revision: Begins with 0 and incremented with each assignment
         """
         self.assert_is_instance()
         assert analysis in [
@@ -547,8 +558,8 @@ class Issue(SSCObject):
         ], "Not a valid analysis type"
         o = {
             'issues': [{
-                'id': self['id'],
-                'revision': self['revision']
+                'id': id,
+                'revision': revision
             }],
             'comment': comment,
             'suppressed': suppressed,
@@ -557,6 +568,8 @@ class Issue(SSCObject):
                 'newCustomTagIndex': analysis
             }]
         }
+        if id:
+            o['id'] = id
         if user:
             o['user'] = user
         if tags:
