@@ -832,7 +832,7 @@ class FortifyApi(object):
         List all ldap users
         :return:
         """
-        url = '/api/v1/ldapObjects'
+        url = '/api/v1/ldapObjects?start=0&limit=-1'
         return self._request('GET', url)
 
     def set_ldap_user(self, distinguished_name, project_version_id):
