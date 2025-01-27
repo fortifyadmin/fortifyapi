@@ -44,6 +44,7 @@ setup(
     url='https://github.com/fortifyadmin/fortifyapi',
     download_url='https://github.com/fortifyadmin/fortifyapi/tarball/' + version,
     license='MIT',
+    license_files = ('LICENSE.txt',),
     zip_safe=True,
     test_suite='nose.collector',
     tests_require=['nose'],
