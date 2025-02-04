@@ -360,7 +360,6 @@ class Project(SSCObject):
             project_version = _find_project_version(project_name)
             if not project_version:
                 raise ParentNotFoundException(f"Somehow `{project_name}` exists yet we cannot query for it")
-            print(project_version)
             return self.create(project_name, version_name, project_id=project_version['project']['id'], description=description,
                                active=active, committed=committed, issue_template_id=issue_template_id,
                                template=template)
