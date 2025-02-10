@@ -759,10 +759,6 @@ class Token(SSCObject):
 
 class Rulepack(SSCObject):
 
-    def get(self):
-        with self._api as api:
-            return Rulepack(self._api, api.get(f"/api/v1/coreRulepacks")['data'], self.parent)
-
     def list(self, **kwargs):
         with self._api as api:
             for e in api.page_data(f"/api/v1/coreRulepacks", **kwargs):
@@ -770,15 +766,19 @@ class Rulepack(SSCObject):
 
     def upload(self, file_path):
         """
+        Known return 'code' values:
+        * -10000: good -- messages vary
+        * -10003: bad -- messages vary
+
         :param file_path str: The path to the rulepack file to upload
-        :return: a Rulepack object
+        :return: list(`RulepacksBatchProcessStatus`) - Normally `[{'code': -10000, 'message': 'some message', 'rulepackResourceId': 1234}]`
         """
         assert file_path, "file_path is required"
         assert exists(file_path), "file_path does not exist"
 
         with self._api as api:
             with open(file_path, 'rb') as f:
-                return Rulepack(self._api, api._request('post', "/api/v1/coreRulepacks", files={'file': f})['data'], self.parent)
+                return api._request('post', "/api/v1/coreRulepacks", files={'file': f})['data']
 
     def delete(self):
         self.assert_is_instance()
