@@ -759,10 +759,6 @@ class Token(SSCObject):
 
 class Rulepack(SSCObject):
 
-    def get(self):
-        with self._api as api:
-            return Rulepack(self._api, api.get(f"/api/v1/coreRulepacks")['data'], self.parent)
-
     def list(self, **kwargs):
         with self._api as api:
             for e in api.page_data(f"/api/v1/coreRulepacks", **kwargs):
