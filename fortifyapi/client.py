@@ -29,6 +29,7 @@ class FortifySSCClient:
         self.sscjobs = SSCJob(self._api, None, self)
         self.reports = Report(self._api, None, self)
         self.auth_entities = AuthEntity(self._api, None, self)
+        self.local_user = LocalUser(self._api, None, self)
         self.ldap_user = LdapUser(self._api, None, self)
         self.rulepacks = Rulepack(self._api, None, self)
         self.filetoken = FileToken(self._api, None, self)
@@ -868,8 +869,16 @@ class Roles(SSCObject):
 
 
 class LocalUser(SSCObject):
-    pass
-
+    """
+    List local users in Fortify SSC.
+    Args: Additional query parameters to filter results
+    Yields: LocalUser: Local user object from the endpoint
+    """
+    def list(self, **kwargs):
+        with self._api as api:
+            for u in api.page_data("/api/v1/localUsers", **kwargs):
+                yield LocalUser(self._api, u, self.parent)
+                
 
 class LdapUser(SSCObject):
 
