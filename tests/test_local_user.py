@@ -30,7 +30,7 @@ class TestLocalUser(TestCase):
         self.assertIsInstance(local_user, LocalUser)
         
         # Test initialization with data
-        user_data = {'id': 1, 'userName': 'admin', 'firstName': 'DevSecOps', 'lastName': 'Administrator', 'email': 'devsecops@servicenow.com', 'suspended': False}
+        user_data = {'id': 1, 'userName': 'admin', 'firstName': 'DevSecOps', 'lastName': 'Administrator', 'email': 'devsecops@example.com', 'suspended': False}
         local_user = LocalUser(client.api, user_data)
         self.assertEqual(local_user['userName'], 'admin')
         self.assertEqual(local_user['id'], 1)
@@ -47,7 +47,7 @@ class TestLocalUser(TestCase):
         mock_users = [
             {'id': 1, 'userName': 'admin', 'firstName': 'Fortify', 'lastName': 'Administrator', 'email': 'devsecops@example.com', 'requirePasswordChange': False, 'passwordNeverExpire': True, 'suspended': False, 'failedLoginAttempts': 0, 'dateFrozen': None, 'roles': [{'id': 'admin', 'name': 'Administrator'}]},
             {'id': 10989, 'userName': 'automation.admin', 'firstName': 'Automation', 'lastName': 'Automation Service', 'email': 'devsecops@example.com', 'requirePasswordChange': False, 'passwordNeverExpire': True, 'suspended': False, 'failedLoginAttempts': 0, 'dateFrozen': None, 'roles': [{'id': 'admin', 'name': 'Administrator'}]},
-            {'id': 6625, 'userName': 'brandon.spruth', 'firstName': 'Brandon', 'lastName': 'Spruth', 'email': 'brandon.spruth@servicenow.com', 'requirePasswordChange': False, 'passwordNeverExpire': True, 'suspended': False, 'failedLoginAttempts': 2, 'dateFrozen': None, 'roles': [{'id': 'admin', 'name': 'Developer'}]}
+            {'id': 6625, 'userName': 'brandon.spruth', 'firstName': 'Brandon', 'lastName': 'Spruth', 'email': 'brandon.spruth@example.com', 'requirePasswordChange': False, 'passwordNeverExpire': True, 'suspended': False, 'failedLoginAttempts': 2, 'dateFrozen': None, 'roles': [{'id': 'admin', 'name': 'Developer'}]}
         ]
         
         # Setup the mock to return our test data
