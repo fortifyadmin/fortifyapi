@@ -75,7 +75,7 @@ class DefaultVersionTemplate:
                 "type": "COPY_FROM_PARTIAL",
                 "values": {
                     "projectVersionId": self.project_version_id,
-                    "previousProjectVersionId": -1,
+                    "previousProjectVersionId": None,
                     "copyAnalysisProcessingRules": True,
                     "copyBugTrackerConfiguration": True,
                     "copyCurrentStateFpr": False,
@@ -95,7 +95,7 @@ class DefaultVersionTemplate:
                 "type": "COPY_CURRENT_STATE",
                 "values": {
                     "projectVersionId": self.project_version_id,
-                    "previousProjectVersionId": -1,
+                    "previousProjectVersionId": None,
                     "copyCurrentStateFpr": False
                 }
             }
